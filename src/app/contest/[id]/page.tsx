@@ -303,8 +303,8 @@ export default function ContestPage() {
                           ))}
                         </div>
                       </div>
-                      <Link href={p.problem.hyperlink} target="_blank">
-                        <Button size="sm">Check</Button>
+                      <Link href={p.problem.hyperlink} target="_blank" className="mr-2">
+                        <Button size="sm">Solve on Leetcode</Button>
                       </Link>
                       {!isCompleted && (
                         <Button
