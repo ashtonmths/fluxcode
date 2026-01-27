@@ -8,7 +8,7 @@ import { TRPCReactProvider } from "~/trpc/react";
 export const metadata: Metadata = {
   title: "FluxCode - Master DSA Through Competition",
   description: "Join long-term coding contests, track your progress with AI-powered suggestions, compete on real-time leaderboards, and master data structures & algorithms",
-  icons: [{ rel: "icon", url: "/favicon.ico" }],
+  icons: [{ rel: "icon", url: "/favicon.svg" }],
 };
 
 const geist = Geist({
