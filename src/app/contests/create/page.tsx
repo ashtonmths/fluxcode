@@ -1,9 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
+import { createClient } from "~/lib/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 type Topic = {
   name: string;
@@ -46,6 +48,7 @@ const LEETCODE_TOPICS = [
 
 export default function CreateContest() {
   const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [password, setPassword] = useState("");
@@ -65,6 +68,19 @@ export default function CreateContest() {
       hard: 2,
     }))
   );
+  
+  useEffect(() => {
+    const supabase = createClient();
+    const fetchUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
+      if (!data.user) {
+        void router.push("/auth/signin");
+      }
+    };
+    void fetchUser();
+  }, [router]);
+  
   const [editingTopic, setEditingTopic] = useState<number | null>(null);
   const [questionsPerTopic, setQuestionsPerTopic] = useState(10);
   const [easy, setEasy] = useState(3);
@@ -125,6 +141,7 @@ export default function CreateContest() {
       return;
     }
     createContest.mutate({
+      userId: user?.id ?? "",
       name,
       description,
       password: password || undefined,

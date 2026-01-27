@@ -6,10 +6,11 @@ import { createClient } from "~/lib/supabase/client";
 import { api } from "~/trpc/react";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
+import type { User } from "@supabase/supabase-js";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,19 +19,19 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        router.push("/auth/signin");
+        void router.push("/auth/signin");
       } else {
         setUser(user);
         setLoading(false);
       }
     };
-    checkAuth();
+    void checkAuth();
   }, [router]);
 
-  const { data: stats } = api.progress.getStats.useQuery(undefined, { enabled: !!user });
-  const { data: recentActivity } = api.progress.getRecentActivity.useQuery({ limit: 10 }, { enabled: !!user });
-  const { data: achievements } = api.user.getAchievements.useQuery(undefined, { enabled: !!user });
-  const { data: streak } = api.user.getStreak.useQuery(undefined, { enabled: !!user });
+  const { data: stats } = api.progress.getStats.useQuery({ userId: user?.id ?? "" }, { enabled: !!user });
+  const { data: recentActivity } = api.progress.getRecentActivity.useQuery({ userId: user?.id ?? "", limit: 10 }, { enabled: !!user });
+  const { data: achievements } = api.user.getAchievements.useQuery({ userId: user?.id ?? "" }, { enabled: !!user });
+  const { data: streak } = api.user.getStreak.useQuery({ userId: user?.id ?? "" }, { enabled: !!user });
 
   if (loading || !user || !stats || !recentActivity || !achievements) {
     return <div className="min-h-screen bg-black flex items-center justify-center">

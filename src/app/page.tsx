@@ -18,13 +18,15 @@ export default function Home() {
     const supabase = createClient();
     
     // Check if user is authenticated
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
+    const fetchUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (data.user) {
         router.push("/dashboard");
       } else {
         setLoading(false);
       }
-    });
+    };
+    void fetchUser();
   }, [router]);
 
   if (loading || !mounted) {
@@ -64,7 +66,7 @@ export default function Home() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-              className="text-6xl md:text-8xl font-bold uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-white/40 leading-[0.9] drop-shadow-2xl"
+              className="text-6xl md:text-8xl font-bold uppercase tracking-tighter text-transparent bg-clip-text bg-linear-to-b from-white via-white to-white/40 leading-[0.9] drop-shadow-2xl"
             >
               FLUX<span className="text-primary">CODE</span>
             </motion.h1>
@@ -171,7 +173,7 @@ export default function Home() {
                 viewport={{ once: true }}
                 className="group relative rounded-3xl p-8 bg-white/5 border border-white/10 hover:border-primary/30 transition-all duration-500 hover:bg-white/10 overflow-hidden"
               >
-                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+                <div className={`absolute inset-0 bg-linear-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
                 
                 <div className="relative z-10">
                   <div className="inline-flex p-3 rounded-2xl bg-primary/10 border border-primary/20 mb-4 group-hover:scale-110 transition-transform duration-300">
@@ -198,7 +200,7 @@ export default function Home() {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
-            className="relative rounded-3xl p-12 bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/30 overflow-hidden text-center"
+            className="relative rounded-3xl p-12 bg-linear-to-br from-primary/20 to-accent/20 border border-primary/30 overflow-hidden text-center"
           >
             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDEwIEwgNDAgMTAgTSAxMCAwIEwgMTAgNDAgTSAwIDIwIEwgNDAgMjAgTSAyMCAwIEwgMjAgNDAgTSAwIDMwIEwgNDAgMzAgTSAzMCAwIEwgMzAgNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-30" />
             

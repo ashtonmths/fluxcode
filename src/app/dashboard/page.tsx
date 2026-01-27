@@ -13,13 +13,13 @@ export default function Dashboard() {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        router.push("/auth/signin");
+        void router.push("/auth/signin");
       } else {
-        router.push("/contests");
+        void router.push("/contests");
       }
     };
 
-    checkAuth();
+    void checkAuth();
   }, [router]);
 
   return null;

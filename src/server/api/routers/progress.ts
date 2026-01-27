@@ -3,10 +3,11 @@ import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
 export const progressRouter = createTRPCRouter({
   getUserProgress: protectedProcedure
-    .query(async ({ ctx }) => {
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ ctx, input }) => {
       const progress = await ctx.db.userProgress.findMany({
         where: {
-          userId: ctx.session.user.id,
+          userId: input.userId,
           completed: true,
         },
         include: {
@@ -20,11 +21,11 @@ export const progressRouter = createTRPCRouter({
     }),
 
   getProgressByTopic: protectedProcedure
-    .input(z.object({ topicId: z.string() }))
+    .input(z.object({ userId: z.string(),  topicId: z.string() }))
     .query(async ({ ctx, input }) => {
       return ctx.db.userProgress.findMany({
         where: {
-          userId: ctx.session.user.id,
+          userId: input.userId,
           topicId: input.topicId,
         },
         include: {
@@ -35,10 +36,11 @@ export const progressRouter = createTRPCRouter({
     }),
 
   getStats: protectedProcedure
-    .query(async ({ ctx }) => {
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ ctx, input }) => {
       const totalSolved = await ctx.db.userProgress.count({
         where: {
-          userId: ctx.session.user.id,
+          userId: input.userId,
           completed: true,
         },
       });
@@ -46,7 +48,7 @@ export const progressRouter = createTRPCRouter({
       const byDifficulty = await ctx.db.userProgress.groupBy({
         by: ["problemId"],
         where: {
-          userId: ctx.session.user.id,
+          userId: input.userId,
           completed: true,
         },
         _count: true,
@@ -66,7 +68,7 @@ export const progressRouter = createTRPCRouter({
       const topicProgress = await ctx.db.userProgress.groupBy({
         by: ["topicId"],
         where: {
-          userId: ctx.session.user.id,
+          userId: input.userId,
           completed: true,
         },
         _count: true,
@@ -87,7 +89,7 @@ export const progressRouter = createTRPCRouter({
       });
 
       const streak = await ctx.db.streak.findUnique({
-        where: { userId: ctx.session.user.id },
+        where: { userId: input.userId },
       });
 
       return {
@@ -100,11 +102,11 @@ export const progressRouter = createTRPCRouter({
     }),
 
   getRecentActivity: protectedProcedure
-    .input(z.object({ limit: z.number().default(10) }))
+    .input(z.object({ userId: z.string(),  limit: z.number().default(10) }))
     .query(async ({ ctx, input }) => {
       return ctx.db.userProgress.findMany({
         where: {
-          userId: ctx.session.user.id,
+          userId: input.userId,
           completed: true,
         },
         include: {

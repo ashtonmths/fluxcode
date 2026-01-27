@@ -152,7 +152,7 @@ export default function SignIn() {
           </div>
 
           <p className="text-center text-white/40 mt-6 text-sm">
-            Don't have an account? Sign in to get started
+            Don&apos;t have an account? Sign in to get started
           </p>
         </motion.div>
       </div>

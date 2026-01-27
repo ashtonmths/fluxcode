@@ -6,7 +6,7 @@ import { sendMissedProblemNotification } from "~/server/services/email";
 
 export const adminRouter = createTRPCRouter({
   startNextTopic: protectedProcedure
-    .input(z.object({ contestId: z.string() }))
+    .input(z.object({ userId: z.string(),  contestId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const contest = await ctx.db.contest.findUnique({
         where: { id: input.contestId },
@@ -17,7 +17,7 @@ export const adminRouter = createTRPCRouter({
         },
       });
 
-      if (!contest || contest.creatorId !== ctx.session.user.id) {
+      if (!contest || contest.creatorId !== input.userId) {
         throw new Error("Unauthorized");
       }
 
@@ -138,7 +138,7 @@ export const adminRouter = createTRPCRouter({
     }),
 
   canStartNextTopic: protectedProcedure
-    .input(z.object({ contestId: z.string() }))
+    .input(z.object({ userId: z.string(),  contestId: z.string() }))
     .query(async ({ ctx, input }) => {
       const contest = await ctx.db.contest.findUnique({
         where: { id: input.contestId },
@@ -187,7 +187,7 @@ export const adminRouter = createTRPCRouter({
 
         if (completedProblems < currentTopicProblems.length) {
           // Check if the requesting user (creator) is the one who hasn't completed
-          if (participant.userId === ctx.session.user.id) {
+          if (participant.userId === input.userId) {
             return { canStart: false, reason: "You must complete all problems first" };
           }
           return { canStart: false, reason: "Not all participants have completed all problems" };
@@ -207,7 +207,7 @@ export const adminRouter = createTRPCRouter({
     }),
 
   getDailySuggestions: protectedProcedure
-    .input(z.object({ contestId: z.string() }))
+    .input(z.object({ userId: z.string(),  contestId: z.string() }))
     .query(async ({ ctx, input }) => {
       return ctx.db.dailySuggestion.findMany({
         where: { contestId: input.contestId },
@@ -216,7 +216,7 @@ export const adminRouter = createTRPCRouter({
     }),
 
   generateDailySuggestion: protectedProcedure
-    .input(z.object({ contestId: z.string() }))
+    .input(z.object({ userId: z.string(),  contestId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const contest = await ctx.db.contest.findUnique({
         where: { id: input.contestId },
@@ -228,7 +228,7 @@ export const adminRouter = createTRPCRouter({
         },
       });
 
-      if (contest?.creatorId !== ctx.session.user.id) {
+      if (contest?.creatorId !== input.userId) {
         throw new Error("Unauthorized");
       }
 
@@ -252,7 +252,7 @@ export const adminRouter = createTRPCRouter({
     }),
 
   applySuggestion: protectedProcedure
-    .input(z.object({ suggestionId: z.string() }))
+    .input(z.object({ userId: z.string(),  suggestionId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const suggestion = await ctx.db.dailySuggestion.findUnique({
         where: { id: input.suggestionId },
@@ -272,7 +272,7 @@ export const adminRouter = createTRPCRouter({
         throw new Error("Suggestion not found");
       }
 
-      if (suggestion.contest.creatorId !== ctx.session.user.id) {
+      if (suggestion.contest.creatorId !== input.userId) {
         throw new Error("Unauthorized");
       }
 
@@ -327,13 +327,13 @@ export const adminRouter = createTRPCRouter({
     }),
 
   getAnalytics: protectedProcedure
-    .input(z.object({ contestId: z.string() }))
+    .input(z.object({ userId: z.string(),  contestId: z.string() }))
     .query(async ({ ctx, input }) => {
       const contest = await ctx.db.contest.findUnique({
         where: { id: input.contestId },
       });
 
-      if (contest?.creatorId !== ctx.session.user.id) {
+      if (contest?.creatorId !== input.userId) {
         throw new Error("Unauthorized");
       }
 
@@ -366,6 +366,7 @@ export const adminRouter = createTRPCRouter({
 
   createAnnouncement: protectedProcedure
     .input(z.object({
+      userId: z.string(),
       contestId: z.string(),
       title: z.string(),
       content: z.string(),
@@ -376,7 +377,7 @@ export const adminRouter = createTRPCRouter({
         where: { id: input.contestId },
       });
 
-      if (contest?.creatorId !== ctx.session.user.id) {
+      if (contest?.creatorId !== input.userId) {
         throw new Error("Unauthorized");
       }
 
@@ -425,7 +426,7 @@ export const adminRouter = createTRPCRouter({
         },
       });
 
-      if (progress?.topic.contest.creatorId !== ctx.session.user.id) {
+      if (progress?.topic.contest.creatorId !== input.userId) {
         throw new Error("Unauthorized");
       }
 
@@ -455,9 +456,10 @@ export const adminRouter = createTRPCRouter({
     }),
 
   testEmail: protectedProcedure
-    .mutation(async ({ ctx }) => {
+    .input(z.object({ userId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
       const user = await ctx.db.user.findUnique({
-        where: { id: ctx.session.user.id },
+        where: { id: input.userId },
       });
 
       if (!user?.email) {

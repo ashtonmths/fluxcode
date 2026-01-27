@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 "use client";
 
 import { useParams } from "next/navigation";
@@ -19,14 +18,16 @@ export default function ContestPage() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-    });
+    const fetchUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
+    };
+    void fetchUser();
   }, []);
 
   const { data: contest, isLoading, refetch } = api.contest.getById.useQuery({ id: contestId });
-  const { data: suggestions } = api.admin.getDailySuggestions.useQuery({ contestId });
-  const { data: canStartNext } = api.admin.canStartNextTopic.useQuery({ contestId });
+  const { data: suggestions } = api.admin.getDailySuggestions.useQuery({ userId: user?.id ?? "", contestId });
+  const { data: canStartNext } = api.admin.canStartNextTopic.useQuery({ userId: user?.id ?? "", contestId });
   const generateSuggestion = api.admin.generateDailySuggestion.useMutation();
   const applySuggestion = api.admin.applySuggestion.useMutation();
   const joinContest = api.contest.join.useMutation({
@@ -57,8 +58,9 @@ export default function ContestPage() {
     }
     setVerifying(problemId);
     verifyMutation.mutate({
+      userId: user.id,
       problemId,
-      leetcodeUsername: user.email || "",
+      leetcodeUsername: user.email ?? "",
     });
   };
 
@@ -236,7 +238,7 @@ export default function ContestPage() {
                     />
                   )}
                   <Button
-                    onClick={() => joinContest.mutate({ contestId, password: contest.password ? password : undefined })}
+                    onClick={() => joinContest.mutate({ userId: user?.id ?? "", contestId, password: contest.password ? password : undefined })}
                     disabled={joinContest.isPending || Boolean(contest.password && !password)}
                   >
                     {joinContest.isPending ? "Joining..." : "Join Contest"}
@@ -247,7 +249,7 @@ export default function ContestPage() {
           )}
           {isCreator && canStartNext?.canStart && (
             <Button
-              onClick={() => startNextTopic.mutate({ contestId })}
+              onClick={() => startNextTopic.mutate({ userId: user?.id ?? "", contestId })}
               disabled={startNextTopic.isPending}
               className="bg-green-600 hover:bg-green-700 text-white"
             >
@@ -420,7 +422,7 @@ export default function ContestPage() {
           <div className="mt-8 rounded-lg bg-gray-800 p-6">
             <h3 className="text-xl font-bold text-white mb-4">AI Suggestions</h3>
             <Button 
-              onClick={() => generateSuggestion.mutate({ contestId })}
+              onClick={() => generateSuggestion.mutate({ userId: user?.id ?? "", contestId })}
               disabled={generateSuggestion.isPending}
               className="mb-4"
             >
@@ -447,7 +449,7 @@ export default function ContestPage() {
                       {!suggestion.isApplied && (
                         <Button
                           size="sm"
-                          onClick={() => applySuggestion.mutate({ suggestionId: suggestion.id })}
+                          onClick={() => applySuggestion.mutate({ userId: user?.id ?? "", suggestionId: suggestion.id })}
                           disabled={applySuggestion.isPending}
                         >
                           {applySuggestion.isPending ? "Applying..." : "Apply"}

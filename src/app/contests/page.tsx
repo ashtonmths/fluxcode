@@ -19,9 +19,11 @@ export default function Contests() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-    });
+    const fetchUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
+    };
+    void fetchUser();
   }, []);
 
   return (
@@ -77,7 +79,7 @@ export default function Contests() {
                 category="Coding Contest"
                 icon={<Trophy className="h-5 w-5 text-primary" />}
                 header={
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-purple-500/10 to-transparent" />
+                  <div className="absolute inset-0 bg-linear-to-br from-primary/20 via-purple-500/10 to-transparent" />
                 }
                 onClick={() => router.push(`/contest/${contest.id}`)}
               />
@@ -86,7 +88,7 @@ export default function Contests() {
         )}
 
         {/* Empty State */}
-        {!isLoading && contests && contests.length === 0 && (
+        {!isLoading && contests?.length === 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

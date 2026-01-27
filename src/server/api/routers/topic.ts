@@ -4,6 +4,7 @@ import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 export const topicRouter = createTRPCRouter({
   create: protectedProcedure
     .input(z.object({
+      userId: z.string(),
       contestId: z.string(),
       name: z.string(),
       description: z.string().optional(),
@@ -18,7 +19,7 @@ export const topicRouter = createTRPCRouter({
         where: { id: input.contestId },
       });
 
-      if (contest?.creatorId !== ctx.session.user.id) {
+      if (contest?.creatorId !== input.userId) {
         throw new Error("Unauthorized");
       }
 
@@ -29,6 +30,7 @@ export const topicRouter = createTRPCRouter({
 
   update: protectedProcedure
     .input(z.object({
+      userId: z.string(),
       id: z.string(),
       name: z.string().optional(),
       description: z.string().optional(),
@@ -46,7 +48,7 @@ export const topicRouter = createTRPCRouter({
         include: { contest: true },
       });
 
-      if (topic?.contest.creatorId !== ctx.session.user.id) {
+      if (topic?.contest.creatorId !== input.userId) {
         throw new Error("Unauthorized");
       }
 
@@ -57,14 +59,14 @@ export const topicRouter = createTRPCRouter({
     }),
 
   delete: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ userId: z.string(),  id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const topic = await ctx.db.topic.findUnique({
         where: { id: input.id },
         include: { contest: true },
       });
 
-      if (topic?.contest.creatorId !== ctx.session.user.id) {
+      if (topic?.contest.creatorId !== input.userId) {
         throw new Error("Unauthorized");
       }
 
@@ -74,7 +76,7 @@ export const topicRouter = createTRPCRouter({
     }),
 
   getByContest: protectedProcedure
-    .input(z.object({ contestId: z.string() }))
+    .input(z.object({ userId: z.string(),  contestId: z.string() }))
     .query(async ({ ctx, input }) => {
       return ctx.db.topic.findMany({
         where: { contestId: input.contestId },
@@ -83,7 +85,7 @@ export const topicRouter = createTRPCRouter({
             orderBy: { orderIndex: "asc" },
           },
           progress: {
-            where: { userId: ctx.session.user.id },
+            where: { userId: input.userId },
           },
         },
         orderBy: { orderIndex: "asc" },

@@ -5,6 +5,7 @@ import { fetchLeetCodeProblems } from "~/server/services/leetcode";
 export const contestRouter = createTRPCRouter({
   create: protectedProcedure
     .input(z.object({
+      userId: z.string(),
       name: z.string(),
       description: z.string().optional(),
       startDate: z.date(),
@@ -14,13 +15,14 @@ export const contestRouter = createTRPCRouter({
       return ctx.db.contest.create({
         data: {
           ...input,
-          creatorId: ctx.session.user.id,
+          creatorId: input.userId,
         },
       });
     }),
 
   createWithTopics: protectedProcedure
     .input(z.object({
+      userId: z.string(),
       name: z.string(),
       description: z.string().optional(),
       startDate: z.date(),
@@ -49,7 +51,7 @@ export const contestRouter = createTRPCRouter({
           easyProblemsPerDay: input.easyProblemsPerDay,
           mediumProblemsPerDay: input.mediumProblemsPerDay,
           hardDaysPerProblem: input.hardDaysPerProblem,
-          creatorId: ctx.session.user.id,
+          creatorId: input.userId,
         },
       });
 
@@ -109,7 +111,7 @@ export const contestRouter = createTRPCRouter({
       await ctx.db.contestParticipant.create({
         data: {
           contestId: contest.id,
-          userId: ctx.session.user.id,
+          userId: input.userId,
           role: "creator",
           isVisible: true,
         },
@@ -119,7 +121,7 @@ export const contestRouter = createTRPCRouter({
     }),
 
   getById: publicProcedure
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ userId: z.string().optional(),  id: z.string() }))
     .query(async ({ ctx, input }) => {
       const contest = await ctx.db.contest.findUnique({
         where: { id: input.id },
@@ -156,10 +158,10 @@ export const contestRouter = createTRPCRouter({
 
       // Get user progress if authenticated
       let userProgress = null;
-      if (ctx.session?.user?.id) {
+      if (input.userId) {
         userProgress = await ctx.db.userProgress.findMany({
           where: {
-            userId: ctx.session.user.id,
+            userId: input.userId,
             problem: {
               topic: {
                 contestId: input.id,
@@ -196,9 +198,10 @@ export const contestRouter = createTRPCRouter({
     }),
 
   getUserContest: protectedProcedure
-    .query(async ({ ctx }) => {
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ ctx, input }) => {
       const participation = await ctx.db.contestParticipant.findFirst({
-        where: { userId: ctx.session.user.id },
+        where: { userId: input.userId },
         include: {
           contest: {
             include: {
@@ -215,6 +218,7 @@ export const contestRouter = createTRPCRouter({
 
   update: protectedProcedure
     .input(z.object({
+      userId: z.string(),
       id: z.string(),
       name: z.string().optional(),
       description: z.string().optional(),
@@ -227,7 +231,7 @@ export const contestRouter = createTRPCRouter({
         where: { id },
       });
       
-      if (contest?.creatorId !== ctx.session.user.id) {
+      if (contest?.creatorId !== input.userId) {
         throw new Error("Unauthorized");
       }
 
@@ -238,13 +242,13 @@ export const contestRouter = createTRPCRouter({
     }),
 
   delete: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ userId: z.string(),  id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const contest = await ctx.db.contest.findUnique({
         where: { id: input.id },
       });
       
-      if (contest?.creatorId !== ctx.session.user.id) {
+      if (contest?.creatorId !== input.userId) {
         throw new Error("Unauthorized");
       }
 
@@ -255,12 +259,13 @@ export const contestRouter = createTRPCRouter({
 
   join: protectedProcedure
     .input(z.object({ 
+      userId: z.string(),
       contestId: z.string(),
       password: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const existing = await ctx.db.contestParticipant.findFirst({
-        where: { userId: ctx.session.user.id },
+        where: { userId: input.userId },
       });
 
       if (existing) {
@@ -283,18 +288,18 @@ export const contestRouter = createTRPCRouter({
       return ctx.db.contestParticipant.create({
         data: {
           contestId: input.contestId,
-          userId: ctx.session.user.id,
+          userId: input.userId,
         },
       });
     }),
 
   leave: protectedProcedure
-    .input(z.object({ contestId: z.string() }))
+    .input(z.object({ userId: z.string(),  contestId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       return ctx.db.contestParticipant.deleteMany({
         where: {
           contestId: input.contestId,
-          userId: ctx.session.user.id,
+          userId: input.userId,
         },
       });
     }),

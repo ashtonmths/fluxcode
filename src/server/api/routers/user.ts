@@ -10,7 +10,7 @@ export const userRouter = createTRPCRouter({
       name: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const userId = input.userId ?? ctx.session?.user?.id;
+      const userId = input.userId ?? input.userId;
       if (!userId) {
         throw new Error("User ID required");
       }
@@ -27,8 +27,11 @@ export const userRouter = createTRPCRouter({
     }),
 
   getProfile: publicProcedure
-    .input(z.object({ userId: z.string() }))
+    .input(z.object({ userId: z.string().optional() }))
     .query(async ({ ctx, input }) => {
+      if (!input.userId) {
+        return null;
+      }
       const user = await ctx.db.user.findUnique({
         where: { id: input.userId },
         include: {
@@ -57,16 +60,17 @@ export const userRouter = createTRPCRouter({
     }),
 
   getNotifications: protectedProcedure
-    .query(async ({ ctx }) => {
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ ctx, input }) => {
       return ctx.db.notification.findMany({
-        where: { userId: ctx.session.user.id },
+        where: { userId: input.userId },
         orderBy: { createdAt: "desc" },
         take: 50,
       });
     }),
 
   markNotificationRead: protectedProcedure
-    .input(z.object({ notificationId: z.string() }))
+    .input(z.object({ userId: z.string(),  notificationId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       return ctx.db.notification.update({
         where: { id: input.notificationId },
@@ -75,9 +79,10 @@ export const userRouter = createTRPCRouter({
     }),
 
   getAchievements: protectedProcedure
-    .query(async ({ ctx }) => {
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ ctx, input }) => {
       return ctx.db.userAchievement.findMany({
-        where: { userId: ctx.session.user.id },
+        where: { userId: input.userId },
         include: {
           badge: true,
         },
@@ -86,16 +91,18 @@ export const userRouter = createTRPCRouter({
     }),
 
   getStreak: protectedProcedure
-    .query(async ({ ctx }) => {
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ ctx, input }) => {
       return ctx.db.streak.findUnique({
-        where: { userId: ctx.session.user.id },
+        where: { userId: input.userId },
       });
     }),
 
   useStreakFreeze: protectedProcedure
-    .mutation(async ({ ctx }) => {
+    .input(z.object({ userId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
       const streak = await ctx.db.streak.findUnique({
-        where: { userId: ctx.session.user.id },
+        where: { userId: input.userId },
       });
 
       if (!streak || streak.freezesLeft <= 0) {
@@ -103,7 +110,7 @@ export const userRouter = createTRPCRouter({
       }
 
       return ctx.db.streak.update({
-        where: { userId: ctx.session.user.id },
+        where: { userId: input.userId },
         data: {
           freezesLeft: { decrement: 1 },
           lastActiveAt: new Date(),

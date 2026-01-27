@@ -16,14 +16,16 @@ export default function TopicPage() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-    });
+    const fetchUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
+    };
+    void fetchUser();
   }, []);
 
   const [verifying, setVerifying] = useState<string | null>(null);
 
-  const { data: problems, refetch } = api.problem.getByTopic.useQuery({ topicId });
+  const { data: problems, refetch } = api.problem.getByTopic.useQuery({ userId: user?.id ?? "", topicId });
   const verifyMutation = api.problem.verify.useMutation({
     onSuccess: () => {
       void refetch();
@@ -42,8 +44,9 @@ export default function TopicPage() {
     }
     setVerifying(problemId);
     verifyMutation.mutate({
+      userId: user.id,
       problemId,
-      leetcodeUsername: user.email || "",
+      leetcodeUsername: user.email ?? "",
     });
   };
 
