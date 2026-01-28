@@ -30,8 +30,8 @@ export default function Contests() {
         // Fetch user profile to check admin status
         const profileResponse = await fetch(`/api/trpc/user.getProfile?batch=1&input=%7B%220%22%3A%7B%22json%22%3A%7B%22userId%22%3A%22${data.user.id}%22%7D%7D%7D`);
         if (profileResponse.ok) {
-          const profileData = await profileResponse.json() as Array<{ result: { data?: { isAdmin?: boolean } } }>;
-          setIsAdmin(profileData[0]?.result?.data?.isAdmin ?? false);
+          const profileData = await profileResponse.json() as Array<{ result: { data?: { json?: { isAdmin?: boolean } } } }>;
+          setIsAdmin(profileData[0]?.result?.data?.json?.isAdmin ?? false);
         }
       }
     };
@@ -115,14 +115,6 @@ export default function Contests() {
                 ? "Be the first to create a contest and challenge the community"
                 : "Check back soon for new contests"}
             </p>
-            {userId && isAdmin && (
-              <Link href="/contests/create">
-                <Button className="bg-primary hover:bg-primary/90 text-black font-semibold px-8 py-6 rounded-full">
-                  <Plus className="h-5 w-5 mr-2" />
-                  Create Contest
-                </Button>
-              </Link>
-            )}
           </motion.div>
         )}
 

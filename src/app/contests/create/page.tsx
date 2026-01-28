@@ -24,7 +24,7 @@ export default function CreateContest() {
   const [startDate, setStartDate] = useState("");
   const [penaltyAmount, setPenaltyAmount] = useState(100);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<Array<{ id: string; name: string; email: string; leetcodeUsername: string }>>([]);
 
   // Fetch users for search
   const { data: allUsers } = api.user.searchUsers.useQuery(
@@ -83,19 +83,19 @@ export default function CreateContest() {
       difficulty,
       startDate: new Date(startDate),
       penaltyAmount,
-      invitedUserIds: selectedUsers,
+      invitedUserIds: selectedUsers.map(u => u.id),
     });
   };
 
-  const addUser = (id: string) => {
-    if (!selectedUsers.includes(id)) {
-      setSelectedUsers([...selectedUsers, id]);
+  const addUser = (user: { id: string; name: string; email: string; leetcodeUsername: string }) => {
+    if (!selectedUsers.find(u => u.id === user.id)) {
+      setSelectedUsers([...selectedUsers, user]);
     }
     setSearchQuery("");
   };
 
   const removeUser = (userId: string) => {
-    setSelectedUsers(selectedUsers.filter((id) => id !== userId));
+    setSelectedUsers(selectedUsers.filter((u) => u.id !== userId));
   };
 
   if (isLoading) {
@@ -240,7 +240,7 @@ export default function CreateContest() {
                         <button
                           key={user.id}
                           type="button"
-                          onClick={() => addUser(user.id)}
+                          onClick={() => addUser(user)}
                           className="w-full border-b border-purple-500/10 px-4 py-3 text-left text-white transition-colors hover:bg-purple-500/10"
                         >
                           <div className="font-medium">{user.name}</div>
@@ -260,26 +260,23 @@ export default function CreateContest() {
                       Selected Participants ({selectedUsers.length}):
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {selectedUsers.map((userId) => {
-                        const user = allUsers?.find((u) => u.id === userId);
-                        return (
+                      {selectedUsers.map((user) => (
                           <div
-                            key={userId}
+                            key={user.id}
                             className="flex items-center gap-2 rounded-lg bg-purple-500/20 px-3 py-2"
                           >
                             <span className="text-sm text-white">
-                              {user?.name ?? userId}
+                              {user.name}
                             </span>
                             <button
                               type="button"
-                              onClick={() => removeUser(userId)}
+                              onClick={() => removeUser(user.id)}
                               className="text-gray-400 hover:text-white"
                             >
                               ×
                             </button>
                           </div>
-                        );
-                      })}
+                        ))}
                     </div>
                   </div>
                 )}
