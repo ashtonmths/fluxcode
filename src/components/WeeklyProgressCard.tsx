@@ -88,7 +88,7 @@ export function WeeklyProgressCard({ week, isWeekend, onVerify }: WeeklyProgress
           <p className="text-sm text-gray-400">{week.topic}</p>
         </div>
         <Badge className="bg-primary/20 text-primary">
-          {week.weekdaySolved + week.weekendSolved}/6 Solved
+          {week.weekdaySolved + week.weekendSolved}/{week.weekdayHomework.length + week.weekendTest.problems.length} Solved
         </Badge>
       </div>
 
@@ -98,7 +98,7 @@ export function WeeklyProgressCard({ week, isWeekend, onVerify }: WeeklyProgress
           <div className="h-3 w-3 rounded-full bg-primary" />
           <span className="font-semibold text-white">Weekday Homework</span>
           <span className="text-sm text-white/60">
-            ({week.weekdaySolved}/3 solved)
+            ({week.weekdaySolved}/{week.weekdayHomework.length} solved)
           </span>
         </div>
         <div className="ml-5 space-y-2">
@@ -171,7 +171,7 @@ export function WeeklyProgressCard({ week, isWeekend, onVerify }: WeeklyProgress
           />
           <span className="font-semibold text-white">Weekend Test</span>
           <span className={`text-sm ${getWeekendTextColor()}`}>
-            ({week.weekendSolved}/3 solved)
+            ({week.weekendSolved}/{week.weekendTest.problems.length} solved)
           </span>
           {week.weekendSolved < 2 && isWeekend && (
             <Badge className="bg-red-500/20 text-red-400">⚠️ Risk</Badge>

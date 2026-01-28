@@ -1,6 +1,89 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { verifyLeetCodeSolution } from "~/server/services/leetcode";
+import type { PrismaClient } from "@prisma/client";
+
+// Helper function to update streak
+async function updateStreak(db: PrismaClient, userId: string, contestId: string) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  // Get or create streak record for user
+  let streak = await db.streak.findUnique({
+    where: { userId },
+  });
+
+  if (!streak) {
+    streak = await db.streak.create({
+      data: {
+        userId,
+        currentStreak: 1,
+        longestStreak: 1,
+        lastActiveAt: now,
+      },
+    });
+  } else {
+    const lastActive = new Date(streak.lastActiveAt);
+    const lastActiveDay = new Date(lastActive.getFullYear(), lastActive.getMonth(), lastActive.getDate());
+    
+    // Calculate days difference
+    const daysDiff = Math.floor((today.getTime() - lastActiveDay.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysDiff === 0) {
+      // Same day - just update lastActiveAt, don't increment streak
+      await db.streak.update({
+        where: { userId },
+        data: { lastActiveAt: now },
+      });
+    } else if (daysDiff === 1) {
+      // Next day - increment streak
+      const newStreak = streak.currentStreak + 1;
+      await db.streak.update({
+        where: { userId },
+        data: {
+          currentStreak: newStreak,
+          longestStreak: Math.max(newStreak, streak.longestStreak),
+          lastActiveAt: now,
+        },
+      });
+    } else {
+      // Missed days - reset streak to 1
+      await db.streak.update({
+        where: { userId },
+        data: {
+          currentStreak: 1,
+          longestStreak: Math.max(1, streak.longestStreak),
+          lastActiveAt: now,
+        },
+      });
+    }
+  }
+
+  // Also update ContestParticipant streak
+  const participant = await db.contestParticipant.findUnique({
+    where: {
+      contestId_userId: {
+        contestId,
+        userId,
+      },
+    },
+  });
+
+  if (participant) {
+    const streak = await db.streak.findUnique({ where: { userId } });
+    await db.contestParticipant.update({
+      where: {
+        contestId_userId: {
+          contestId,
+          userId,
+        },
+      },
+      data: {
+        currentStreak: streak?.currentStreak ?? 0,
+      },
+    });
+  }
+}
 
 export const progressRouter = createTRPCRouter({
   getUserProgress: protectedProcedure
@@ -89,9 +172,30 @@ export const progressRouter = createTRPCRouter({
         };
       });
 
-      const streak = await ctx.db.streak.findUnique({
+      let streak = await ctx.db.streak.findUnique({
         where: { userId: input.userId },
       });
+
+      // Check if user missed a day and reset streak if so
+      if (streak) {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const lastActive = new Date(streak.lastActiveAt);
+        const lastActiveDay = new Date(lastActive.getFullYear(), lastActive.getMonth(), lastActive.getDate());
+        
+        const daysDiff = Math.floor((today.getTime() - lastActiveDay.getTime()) / (1000 * 60 * 60 * 24));
+        
+        // If more than 1 day has passed, reset streak to 0
+        if (daysDiff > 1) {
+          streak = await ctx.db.streak.update({
+            where: { userId: input.userId },
+            data: {
+              currentStreak: 0,
+              lastActiveAt: now,
+            },
+          });
+        }
+      }
 
       return {
         totalSolved,
@@ -193,7 +297,7 @@ export const progressRouter = createTRPCRouter({
       });
 
       if (existing) {
-        return ctx.db.userProgress.update({
+        const result = await ctx.db.userProgress.update({
           where: { id: existing.id },
           data: {
             completed: true,
@@ -201,10 +305,15 @@ export const progressRouter = createTRPCRouter({
             verifiedAt: new Date(),
           },
         });
+        
+        // Update streak
+        await updateStreak(ctx.db, input.userId, input.contestId);
+        
+        return result;
       }
 
       // Create new progress
-      return ctx.db.userProgress.create({
+      const result = await ctx.db.userProgress.create({
         data: {
           userId: input.userId,
           problemId: problem.id,
@@ -214,6 +323,11 @@ export const progressRouter = createTRPCRouter({
           verifiedAt: new Date(),
         },
       });
+      
+      // Update streak
+      await updateStreak(ctx.db, input.userId, input.contestId);
+      
+      return result;
     }),
 
   getRecentActivity: protectedProcedure

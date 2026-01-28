@@ -85,9 +85,34 @@ export const userRouter = createTRPCRouter({
   getStreak: protectedProcedure
     .input(z.object({ userId: z.string() }))
     .query(async ({ ctx, input }) => {
-      return ctx.db.streak.findUnique({
+      const streak = await ctx.db.streak.findUnique({
         where: { userId: input.userId },
       });
+
+      if (!streak) {
+        return null;
+      }
+
+      // Check if user missed a day
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const lastActive = new Date(streak.lastActiveAt);
+      const lastActiveDay = new Date(lastActive.getFullYear(), lastActive.getMonth(), lastActive.getDate());
+      
+      const daysDiff = Math.floor((today.getTime() - lastActiveDay.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // If more than 1 day has passed, reset streak to 0
+      if (daysDiff > 1) {
+        return ctx.db.streak.update({
+          where: { userId: input.userId },
+          data: {
+            currentStreak: 0,
+            lastActiveAt: now,
+          },
+        });
+      }
+
+      return streak;
     }),
 
   useStreakFreeze: protectedProcedure
