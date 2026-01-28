@@ -85,7 +85,7 @@ export default function Contests() {
             {contests.map((contest, idx) => (
               <BentoGridItem
                 key={contest.id}
-                className={idx % 5 === 0 ? "md:col-span-2" : ""}
+                className=""
                 title={contest.name}
                 description={contest.description ?? "No description available"}
                 category="Coding Contest"

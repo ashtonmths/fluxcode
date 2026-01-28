@@ -88,7 +88,7 @@ export const BentoGridItem = ({
       </div>
 
       {/* Content Section - Overlay */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 p-6 bg-gradient-to-t from-black via-black/90 to-transparent pt-32 translate-y-2 group-hover/bento:translate-y-0 transition-transform duration-500">
+      <div className="absolute bottom-0 left-0 right-0 z-20 p-6 bg-linear-to-t from-black via-black/90 to-transparent pt-32 translate-y-2 group-hover/bento:translate-y-0 transition-transform duration-500">
         
         <div className="flex items-center justify-between mb-3">
            {icon && (

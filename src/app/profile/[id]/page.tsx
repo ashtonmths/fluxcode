@@ -3,9 +3,8 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { Card } from "~/components/ui/card";
-import { Badge } from "~/components/ui/badge";
 import { NavBar } from "~/components/ui/navbar";
 import { api } from "~/trpc/react";
 
@@ -39,7 +38,6 @@ interface LeetCodeStats {
 
 export default function UserProfilePage() {
   const params = useParams();
-  const router = useRouter();
   const userId = params.id as string;
   
   const { data: userProfile, isLoading: profileLoading } = api.user.getProfile.useQuery(
@@ -129,7 +127,7 @@ export default function UserProfilePage() {
           className="mb-12 text-center"
         >
           <div className="relative mx-auto mb-6 h-32 w-32">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary to-accent opacity-50 blur-xl" />
+            <div className="absolute inset-0 rounded-full bg-linear-to-r from-primary to-accent opacity-50 blur-xl" />
             <img
               src={
                 leetcodeStats?.profile.userAvatar ??

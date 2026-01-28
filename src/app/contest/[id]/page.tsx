@@ -51,7 +51,7 @@ export default function ContestDashboard() {
   const [isLoading, setIsLoading] = useState(true);
 
   const { data: contest, refetch: refetchContest } = api.contest.getById.useQuery(
-    { id: contestId },
+    { id: contestId, userId: userId ?? undefined },
     { enabled: !!contestId }
   );
 
@@ -133,24 +133,32 @@ export default function ContestDashboard() {
   };
 
   const getWeekData = (week: SyllabusWeek) => {
-    // Mock solved data - in real app, fetch from user progress
-    const weekdaySolved = Math.floor(Math.random() * 4); // 0-3
-    const weekendSolved = Math.floor(Math.random() * 4); // 0-3
+    // Get actual solved data from userProgress
+    const userProgressMap = new Map(
+      contest?.userProgress?.map((p) => [p.problemId, p.completed]) ?? []
+    );
+
+    const weekdayProblems = week.weekdayHomework.map((p) => ({
+      ...p,
+      solved: userProgressMap.get(p.id) ?? false,
+    }));
+
+    const weekendProblems = week.weekendTest.problems.map((p) => ({
+      ...p,
+      solved: userProgressMap.get(p.id) ?? false,
+    }));
+
+    const weekdaySolved = weekdayProblems.filter((p) => p.solved).length;
+    const weekendSolved = weekendProblems.filter((p) => p.solved).length;
 
     return {
       ...week,
       weekdaySolved,
       weekendSolved,
-      weekdayHomework: week.weekdayHomework.map((p) => ({
-        ...p,
-        solved: false,
-      })),
+      weekdayHomework: weekdayProblems,
       weekendTest: {
         ...week.weekendTest,
-        problems: week.weekendTest.problems.map((p) => ({
-          ...p,
-          solved: false,
-        })),
+        problems: weekendProblems,
       },
     };
   };
@@ -233,7 +241,7 @@ export default function ContestDashboard() {
                     ⚠️ Payment Required
                   </h3>
                   <p className="text-sm text-gray-300">
-                    You failed last weekend&apos;s test (0-1 problems solved). Pay
+                    You failed last weekend&apos;s test. Pay
                     ₹{contest.penaltyAmount} to continue.
                   </p>
                 </div>
@@ -290,6 +298,13 @@ export default function ContestDashboard() {
                   key={week.weekNumber}
                   week={getWeekData(week)}
                   isWeekend={isWeekend()}
+                  onVerify={async (problemId: string) => {
+                    if (!userId) return;
+                    // TODO: Call verify API to check LeetCode submission
+                    console.log('Verify problem:', problemId);
+                    // After verification, refetch contest data
+                    await refetchContest();
+                  }}
                 />
               ))}
             </div>
