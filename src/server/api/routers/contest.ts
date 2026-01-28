@@ -363,14 +363,19 @@ export const contestRouter = createTRPCRouter({
 
       // Invite users if provided
       if (input.invitedUserIds && input.invitedUserIds.length > 0) {
-        await ctx.db.contestParticipant.createMany({
-          data: input.invitedUserIds.map((userId) => ({
-            contestId: contest.id,
-            userId,
-            role: "participant",
-            isVisible: false,
-          })),
-        });
+        // Filter out creator to avoid duplicate
+        const usersToInvite = input.invitedUserIds.filter(id => id !== input.userId);
+        
+        if (usersToInvite.length > 0) {
+          await ctx.db.contestParticipant.createMany({
+            data: usersToInvite.map((userId) => ({
+              contestId: contest.id,
+              userId,
+              role: "participant",
+              isVisible: false,
+            })),
+          });
+        }
       }
 
       return contest;
