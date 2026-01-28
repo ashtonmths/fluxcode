@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { db } from '~/server/db'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -27,9 +28,40 @@ export async function GET(request: Request) {
       }
     )
     
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     
-    if (!error) {
+    if (!error && data.user) {
+      // Create or update user record in our database
+      try {
+        await db.user.upsert({
+          where: { id: data.user.id },
+          create: {
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.user_metadata?.name ?? data.user.user_metadata?.full_name ?? null,
+            image: data.user.user_metadata?.avatar_url ?? null,
+            onboardingCompleted: false,
+          },
+          update: {
+            email: data.user.email,
+            name: data.user.user_metadata?.name ?? data.user.user_metadata?.full_name ?? null,
+            image: data.user.user_metadata?.avatar_url ?? null,
+          },
+        })
+        
+        // Redirect to onboarding if user hasn't completed it
+        const user = await db.user.findUnique({
+          where: { id: data.user.id },
+          select: { onboardingCompleted: true, leetcodeUsername: true },
+        })
+        
+        if (user && !user.leetcodeUsername) {
+          return NextResponse.redirect(`${origin}/onboarding`)
+        }
+      } catch (dbError) {
+        console.error('Database sync error:', dbError)
+      }
+      
       return NextResponse.redirect(`${origin}${next}`)
     }
     
