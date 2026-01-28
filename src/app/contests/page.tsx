@@ -10,18 +10,30 @@ import { Trophy, Users, Calendar, Plus, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { createClient } from "~/lib/supabase/client";
 import { useEffect, useState } from "react";
-import type { User } from "@supabase/supabase-js";
 
 export default function Contests() {
   const { data: contests, isLoading } = api.contest.getAll.useQuery();
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
     const fetchUser = async () => {
       const { data } = await supabase.auth.getUser();
-      setUser(data.user);
+      if (data.user) {
+        setUserId(data.user.id);
+        
+        // Sync user to database first
+        await fetch("/api/sync-user", { method: "POST" });
+        
+        // Fetch user profile to check admin status
+        const profileResponse = await fetch(`/api/trpc/user.getProfile?batch=1&input=%7B%220%22%3A%7B%22json%22%3A%7B%22userId%22%3A%22${data.user.id}%22%7D%7D%7D`);
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json() as Array<{ result: { data?: { isAdmin?: boolean } } }>;
+          setIsAdmin(profileData[0]?.result?.data?.isAdmin ?? false);
+        }
+      }
     };
     void fetchUser();
   }, []);
@@ -50,7 +62,7 @@ export default function Contests() {
             Join competitive coding contests and track your progress on the leaderboards
           </p>
 
-          {user && (
+          {userId && isAdmin && (
             <Link href="/contests/create">
               <Button className="group bg-primary hover:bg-primary/90 text-black font-semibold px-6 py-6 rounded-full">
                 <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform duration-300" />
@@ -97,11 +109,13 @@ export default function Contests() {
             <div className="inline-flex p-6 rounded-3xl bg-white/5 border border-white/10 mb-6">
               <Trophy className="h-16 w-16 text-primary/50" />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-3">No Active Contests</h3>
+            <h3 className="text-2xl font-bold text-white mb-3">No Contests Available</h3>
             <p className="text-white/60 mb-8 max-w-md mx-auto">
-              Be the first to create a contest and challenge the community
+              {isAdmin 
+                ? "Be the first to create a contest and challenge the community"
+                : "Check back soon for new contests"}
             </p>
-            {user && (
+            {userId && isAdmin && (
               <Link href="/contests/create">
                 <Button className="bg-primary hover:bg-primary/90 text-black font-semibold px-8 py-6 rounded-full">
                   <Plus className="h-5 w-5 mr-2" />
