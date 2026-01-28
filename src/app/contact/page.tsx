@@ -71,7 +71,7 @@ export default function Contact() {
               <div>
                 <h3 className="text-xl font-semibold text-white mb-2">GitHub</h3>
                 <p className="text-gray-400 mb-3">Report issues and contribute</p>
-                <p className="text-primary font-medium">github.com/fluxcode</p>
+                <p className="text-primary font-medium">github.com/ashtonmths/fluxcode</p>
               </div>
             </div>
           </a>

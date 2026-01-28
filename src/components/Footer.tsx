@@ -77,7 +77,13 @@ export function Footer() {
                 </a>
               </li>
               <li>
-                <a href="https://github.com/fluxcode" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-primary transition-colors flex items-center gap-2">
+                <a href="mailto:ashtonmths@outlook.com" className="text-sm text-gray-400 hover:text-primary transition-colors flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  ashtonmths@outlook.com
+                </a>
+              </li>
+              <li>
+                <a href="https://github.com/ashtonmths/fluxcode" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-primary transition-colors flex items-center gap-2">
                   <Github className="h-4 w-4" />
                   GitHub
                 </a>
