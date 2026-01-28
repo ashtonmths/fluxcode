@@ -1,471 +1,328 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import Link from "next/link";
-import { Button } from "~/components/ui/button";
-import { api } from "~/trpc/react";
+import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Card } from "~/components/ui/card";
+import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
+import { WeeklyProgressCard } from "~/components/WeeklyProgressCard";
+import { PaymentModal } from "~/components/PaymentModal";
+import { api } from "~/trpc/react";
 import { createClient } from "~/lib/supabase/client";
-import type { User } from "@supabase/supabase-js";
 
-export default function ContestPage() {
+interface SyllabusWeek {
+  weekNumber: number;
+  topic: string;
+  concepts: string[];
+  resources: string[];
+  weekdayHomework: Array<{
+    id: string;
+    title: string;
+    difficulty: string;
+  }>;
+  weekendTest: {
+    problems: Array<{
+      id: string;
+      title: string;
+      difficulty: string;
+    }>;
+    timeLimit: string;
+  };
+}
+
+interface Syllabus {
+  level: string;
+  duration: string;
+  totalWeeks: number;
+  description: string;
+  weeks: SyllabusWeek[];
+}
+
+export default function ContestDashboard() {
   const params = useParams();
+  const router = useRouter();
   const contestId = params.id as string;
-  const [password, setPassword] = useState("");
-  const [showPasswordInput, setShowPasswordInput] = useState(false);
-  const [verifying, setVerifying] = useState<string | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+
+  const [syllabus, setSyllabus] = useState<Syllabus | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [currentWeek, setCurrentWeek] = useState(1);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const { data: contest, refetch: refetchContest } = api.contest.getById.useQuery(
+    { id: contestId },
+    { enabled: !!contestId }
+  );
+
+  const joinContest = api.contest.join.useMutation({
+    onSuccess: () => {
+      void refetchContest();
+      setShowPaymentModal(true);
+    },
+  });
 
   useEffect(() => {
     const supabase = createClient();
     const fetchUser = async () => {
       const { data } = await supabase.auth.getUser();
-      setUser(data.user);
+      if (data.user) {
+        setUserId(data.user.id);
+      } else {
+        router.push("/auth/signin");
+      }
+      setIsLoading(false);
     };
     void fetchUser();
-  }, []);
+  }, [router]);
 
-  const { data: contest, isLoading, refetch } = api.contest.getById.useQuery({ id: contestId });
-  const { data: suggestions } = api.admin.getDailySuggestions.useQuery({ userId: user?.id ?? "", contestId });
-  const { data: canStartNext } = api.admin.canStartNextTopic.useQuery({ userId: user?.id ?? "", contestId });
-  const generateSuggestion = api.admin.generateDailySuggestion.useMutation();
-  const applySuggestion = api.admin.applySuggestion.useMutation();
-  const joinContest = api.contest.join.useMutation({
-    onSuccess: () => {
-      void refetch();
-    },
-  });
-  const startNextTopic = api.admin.startNextTopic.useMutation({
-    onSuccess: () => {
-      void refetch();
-    },
-  });
-  const verifyMutation = api.problem.verify.useMutation({
-    onSuccess: () => {
-      void refetch();
-      setVerifying(null);
-    },
-    onError: (error) => {
-      alert(error.message);
-      setVerifying(null);
-    },
-  });
+  useEffect(() => {
+    // Load syllabus based on contest difficulty
+    if (contest?.difficulty) {
+      const filename = `${contest.difficulty}-${
+        contest.difficulty === "beginner"
+          ? "9months"
+          : contest.difficulty === "intermediate"
+            ? "6months"
+            : "5months"
+      }.json`;
 
-  const handleVerify = (problemId: string) => {
-    if (!user) {
-      alert("Please sign in to verify problems");
-      return;
+      fetch(`/syllabi/${filename}`)
+        .then((res) => res.json())
+        .then((data: Syllabus) => setSyllabus(data))
+        .catch((err) => console.error("Failed to load syllabus:", err));
     }
-    setVerifying(problemId);
-    verifyMutation.mutate({
-      userId: user.id,
-      problemId,
-      leetcodeUsername: user.email ?? "",
+  }, [contest?.difficulty]);
+
+  useEffect(() => {
+    // Calculate current week based on start date
+    if (contest?.startDate) {
+      const start = new Date(contest.startDate);
+      const today = new Date();
+      const weeksSinceStart = Math.floor(
+        (today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 7)
+      );
+      setCurrentWeek(Math.max(1, weeksSinceStart + 1));
+    }
+  }, [contest?.startDate]);
+
+  if (isLoading || !contest) {
+    return (
+      <div className="min-h-screen bg-linear-to-b from-black via-purple-950/10 to-black">
+        <div className="container mx-auto px-4 py-20">
+          <div className="text-center text-gray-400">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  const participant = contest.participants.find(
+    (p) => p.userId === userId
+  );
+  const isParticipant = !!participant;
+  const needsPayment = participant?.needsPayment ?? true;
+  const hasPaid = participant?.hasPaid ?? false;
+
+  const handleJoinContest = () => {
+    if (!userId) return;
+    joinContest.mutate({
+      userId: userId,
+      contestId: contest.id,
+      password: contest.password ?? undefined,
     });
   };
 
-  if (isLoading) {
-    return <div className="flex min-h-screen items-center justify-center bg-gray-900 text-white">Loading...</div>;
-  }
+  const getWeekData = (week: SyllabusWeek) => {
+    // Mock solved data - in real app, fetch from user progress
+    const weekdaySolved = Math.floor(Math.random() * 4); // 0-3
+    const weekendSolved = Math.floor(Math.random() * 4); // 0-3
 
-  if (!contest) {
-    return <div className="flex min-h-screen items-center justify-center bg-gray-900 text-white">Contest not found</div>;
-  }
-
-  const currentUserId = user?.id;
-  const isParticipant = contest.participants.some((p) => p.userId === currentUserId);
-  const isCreator = contest.creatorId === currentUserId;
-
-  // Calculate available problems based on difficulty and days
-  const getAvailableProblems = () => {
-    if (!contest.startDate) return [];
-    
-    const availableProblems: Array<{
-      problemId: string;
-      isAvailableToday: boolean;
-      unlockDay: number;
-      problem: typeof contest.topics[0]['problems'][0];
-    }> = [];
-    
-    for (const topic of contest.topics) {
-      // Only process topics that have been started
-      if (!topic.hasStarted || !topic.topicStartedAt) {
-        continue;
-      }
-
-      const topicStartDate = new Date(topic.topicStartedAt);
-      const today = new Date();
-      const daysSinceStart = Math.floor((today.getTime() - topicStartDate.getTime()) / (1000 * 60 * 60 * 24));
-      
-      // Sort problems by difficulty for proper unlocking
-      const easyProblems = topic.problems.filter(p => p.difficulty === 'Easy');
-      const mediumProblems = topic.problems.filter(p => p.difficulty === 'Medium');
-      const hardProblems = topic.problems.filter(p => p.difficulty === 'Hard');
-      
-      // Easy: 2 per day
-      for (let i = 0; i < easyProblems.length; i++) {
-        const problem = easyProblems[i];
-        if (!problem) continue;
-        const unlockDay = Math.floor(i / 2);
-        availableProblems.push({
-          problemId: problem.id,
-          isAvailableToday: daysSinceStart >= unlockDay,
-          unlockDay,
-          problem,
-        });
-      }
-      
-      // Medium: 1 per day
-      const mediumStartDay = Math.ceil(easyProblems.length / 2);
-      for (let i = 0; i < mediumProblems.length; i++) {
-        const problem = mediumProblems[i];
-        if (!problem) continue;
-        const unlockDay = mediumStartDay + i;
-        availableProblems.push({
-          problemId: problem.id,
-          isAvailableToday: daysSinceStart >= unlockDay,
-          unlockDay,
-          problem,
-        });
-      }
-      
-      // Hard: 1 every 2 days
-      const hardStartDay = mediumStartDay + mediumProblems.length;
-      for (let i = 0; i < hardProblems.length; i++) {
-        const problem = hardProblems[i];
-        if (!problem) continue;
-        const unlockDay = hardStartDay + (i * 2);
-        availableProblems.push({
-          problemId: problem.id,
-          isAvailableToday: daysSinceStart >= unlockDay,
-          unlockDay,
-          problem,
-        });
-      }
-    }
-    
-    return availableProblems;
-  };
-
-  // Get today's problems
-  const getTodaysProblems = () => {
-    // Find active topic that has been started
-    const activeTopic = contest.topics.find((t) => t.isActive && t.hasStarted);
-    if (!activeTopic || !activeTopic.topicStartedAt) return { problems: [], completedCount: 0, totalCount: 0, dayNumber: 0, hoursUntilNext: 0 };
-    
-    const startDate = new Date(activeTopic.topicStartedAt);
-    const today = new Date();
-    const daysSinceStart = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    
-    const availableProblems = getAvailableProblems();
-    const todaysProblems = availableProblems.filter(p => 
-      p.unlockDay === daysSinceStart && p.isAvailableToday
-    );
-    
-    const completedCount = todaysProblems.filter(p =>
-      contest.userProgress?.some(
-        (up: { problemId: string; completed: boolean }) => up.problemId === p.problemId && up.completed
-      )
-    ).length;
-    
-    // Calculate next unlock time
-    const tomorrow = new Date(startDate);
-    tomorrow.setDate(tomorrow.getDate() + daysSinceStart + 1);
-    const hoursUntilNext = Math.max(0, Math.floor((tomorrow.getTime() - today.getTime()) / (1000 * 60 * 60)));
-    
     return {
-      problems: todaysProblems,
-      completedCount,
-      totalCount: todaysProblems.length,
-      dayNumber: daysSinceStart + 1,
-      hoursUntilNext,
+      ...week,
+      weekdaySolved,
+      weekendSolved,
+      weekdayHomework: week.weekdayHomework.map((p) => ({
+        ...p,
+        solved: false,
+      })),
+      weekendTest: {
+        ...week.weekendTest,
+        problems: week.weekendTest.problems.map((p) => ({
+          ...p,
+          solved: false,
+        })),
+      },
     };
   };
 
-  const todaysData = getTodaysProblems();
-  const availableProblems = getAvailableProblems();
-  
-  // Check if there's an active topic that has started
-  const activeTopicStarted = contest.topics.some((t) => t.isActive && t.hasStarted);
+  // Check if it's weekend (Saturday or Sunday)
+  const isWeekend = () => {
+    const day = new Date().getDay();
+    return day === 0 || day === 6;
+  };
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      <nav className="border-b border-gray-800 bg-gray-800">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            <Link href="/dashboard">
-              <h1 className="text-2xl font-bold text-indigo-400">FluxCode</h1>
-            </Link>
+    <div className="min-h-screen bg-linear-to-b from-black via-purple-950/10 to-black">
+      <div className="container mx-auto px-4 py-20">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-12"
+        >
+          <div className="mb-6 flex items-start justify-between">
+            <div>
+              <h1 className="mb-2 text-4xl font-bold text-white">
+                {contest.name}
+              </h1>
+              {contest.description && (
+                <p className="text-lg text-gray-400">{contest.description}</p>
+              )}
+            </div>
+            <Badge
+              className={
+                contest.difficulty === "beginner"
+                  ? "bg-green-500/20 text-green-400"
+                  : contest.difficulty === "intermediate"
+                    ? "bg-yellow-500/20 text-yellow-400"
+                    : "bg-red-500/20 text-red-400"
+              }
+            >
+              {contest.difficulty.toUpperCase()}
+            </Badge>
           </div>
-        </div>
-      </nav>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-white">{contest.name}</h2>
-          <p className="mt-2 text-gray-400">{contest.description}</p>
-          <div className="mt-4 flex items-center gap-4">
-            <span className="text-sm text-gray-400">
-              Created by {contest.creator.name}
-            </span>
-            <span className="text-sm text-gray-400">
-              {contest.participants.length} participants
-            </span>
+          {/* Contest Stats */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <Card className="border-purple-500/20 bg-black/50 p-4 backdrop-blur-xl">
+              <div className="text-sm text-gray-400">Duration</div>
+              <div className="text-2xl font-bold text-white">
+                {syllabus?.duration ?? "Loading..."}
+              </div>
+            </Card>
+            <Card className="border-purple-500/20 bg-black/50 p-4 backdrop-blur-xl">
+              <div className="text-sm text-gray-400">Current Week</div>
+              <div className="text-2xl font-bold text-white">
+                Week {currentWeek}
+              </div>
+            </Card>
+            <Card className="border-purple-500/20 bg-black/50 p-4 backdrop-blur-xl">
+              <div className="text-sm text-gray-400">Your Streak</div>
+              <div className="text-2xl font-bold text-purple-400">
+                {participant?.currentStreak ?? 0} 🔥
+              </div>
+            </Card>
+            <Card className="border-purple-500/20 bg-black/50 p-4 backdrop-blur-xl">
+              <div className="text-sm text-gray-400">Participants</div>
+              <div className="text-2xl font-bold text-white">
+                {contest.participants.length}
+              </div>
+            </Card>
           </div>
-        </div>
 
-        <div className="mb-6 flex gap-4">
-          {!isParticipant && (
-            <div className="flex flex-col gap-2">
-              {contest.password && !showPasswordInput && (
+          {/* Payment Status Warning */}
+          {isParticipant && needsPayment && !hasPaid && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-4"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-red-400">
+                    ⚠️ Payment Required
+                  </h3>
+                  <p className="text-sm text-gray-300">
+                    You failed last weekend&apos;s test (0-1 problems solved). Pay
+                    ₹{contest.penaltyAmount} to continue.
+                  </p>
+                </div>
                 <Button
-                  onClick={() => setShowPasswordInput(true)}
-                  variant="outline"
-                  className="border-gray-700 text-gray-300 hover:bg-gray-700"
+                  onClick={() => setShowPaymentModal(true)}
+                  className="bg-red-500 hover:bg-red-600"
                 >
-                  Enter Password to Join
+                  Pay Now
                 </Button>
-              )}
-              {(!contest.password || showPasswordInput) && (
-                <div className="flex gap-2">
-                  {contest.password && (
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter contest password"
-                      className="rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white placeholder-gray-400"
-                    />
-                  )}
-                  <Button
-                    onClick={() => joinContest.mutate({ userId: user?.id ?? "", contestId, password: contest.password ? password : undefined })}
-                    disabled={joinContest.isPending || Boolean(contest.password && !password)}
-                  >
-                    {joinContest.isPending ? "Joining..." : "Join Contest"}
-                  </Button>
-                </div>
-              )}
-            </div>
+              </div>
+            </motion.div>
           )}
-          {isCreator && canStartNext?.canStart && (
-            <Button
-              onClick={() => startNextTopic.mutate({ userId: user?.id ?? "", contestId })}
-              disabled={startNextTopic.isPending}
-              className="bg-green-600 hover:bg-green-700 text-white"
+
+          {/* Join Contest Button */}
+          {!isParticipant && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mt-4"
             >
-              {startNextTopic.isPending ? "Starting..." : "Start Topic"}
-            </Button>
+              <Card className="border-purple-500/20 bg-black/50 p-6 text-center backdrop-blur-xl">
+                <h3 className="mb-2 text-xl font-bold text-white">
+                  Join this Contest
+                </h3>
+                <p className="mb-4 text-gray-400">
+                  Entry fee: ₹{contest.penaltyAmount}. Maintain 2/3 problems
+                  each weekend to continue!
+                </p>
+                <Button
+                  onClick={handleJoinContest}
+                  disabled={joinContest.isPending}
+                  className="bg-linear-to-r from-purple-500 to-pink-500 px-8 py-3"
+                >
+                  {joinContest.isPending ? "Joining..." : "Join Contest"}
+                </Button>
+              </Card>
+            </motion.div>
           )}
-          <Link href={`/contest/${contestId}/leaderboard`}>
-            <Button variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-700">View Leaderboard</Button>
-          </Link>
-        </div>
+        </motion.div>
 
-        {activeTopicStarted && todaysData.problems.length > 0 && (
-          <div className="mb-8 rounded-lg bg-linear-to-r from-indigo-900/50 to-purple-900/50 p-6 border border-indigo-700">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-xl font-bold text-white mb-2">Today&apos;s Challenges - Day {todaysData.dayNumber}</h3>
-                <p className="text-sm text-gray-300">{todaysData.completedCount} of {todaysData.totalCount} completed</p>
-              </div>
-              {todaysData.completedCount === todaysData.totalCount && (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-900 text-green-300">
-                  ✓ All Completed
-                </span>
-              )}
-            </div>
-            
-            <div className="space-y-3 mb-4">
-              {todaysData.problems.map((p) => {
-                const isCompleted = contest.userProgress?.some(
-                  (up: { problemId: string; completed: boolean }) => up.problemId === p.problemId && up.completed
-                );
-                const isVerifying = verifying === p.problemId;
-                return (
-                  <div key={p.problemId} className="bg-gray-800/50 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <a
-                            href={p.problem.hyperlink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-semibold text-indigo-400 hover:underline text-lg"
-                          >
-                            {p.problem.title}
-                          </a>
-                          {isCompleted && (
-                            <span className="text-xs px-2 py-1 rounded bg-green-900 text-green-300">✓ Solved</span>
-                          )}
-                        </div>
-                        <div className="flex gap-2 items-center">
-                          <span className={`text-xs px-2 py-1 rounded ${
-                            p.problem.difficulty === 'Easy' ? 'bg-green-900 text-green-300' :
-                            p.problem.difficulty === 'Medium' ? 'bg-yellow-900 text-yellow-300' :
-                            'bg-red-900 text-red-300'
-                          }`}>
-                            {p.problem.difficulty}
-                          </span>
-                          {p.problem.tags.slice(0, 3).map((tag: string) => (
-                            <span key={tag} className="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <Link href={p.problem.hyperlink} target="_blank" className="mr-2">
-                        <Button size="sm">Solve on Leetcode</Button>
-                      </Link>
-                      {!isCompleted && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleVerify(p.problemId)}
-                          disabled={isVerifying}
-                        >
-                          {isVerifying ? "Verifying..." : "Check"}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+        {/* Weekly Progress */}
+        {isParticipant && syllabus && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            <h2 className="mb-6 text-2xl font-bold text-white">
+              Your Progress
+            </h2>
+            <div className="space-y-6">
+              {syllabus.weeks.slice(0, currentWeek).map((week) => (
+                <WeeklyProgressCard
+                  key={week.weekNumber}
+                  week={getWeekData(week)}
+                  isWeekend={isWeekend()}
+                />
+              ))}
             </div>
 
-            <div className="bg-gray-800/30 rounded p-3">
-              <p className="text-gray-400 text-sm mb-1">Next Challenge Unlocks In</p>
-              <p className="text-white font-medium text-lg">{todaysData.hoursUntilNext} hours</p>
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-6">
-          <h3 className="text-2xl font-bold text-white">Topics & Problems</h3>
-          {contest.topics.map((topic) => {
-            // Only show unlocked problems if topic has been started
-            const topicProblems = topic.hasStarted 
-              ? availableProblems.filter(p => topic.problems.some(tp => tp.id === p.problemId))
-              : [];
-            const availableCount = topicProblems.filter(p => p.isAvailableToday).length;
-            const lockedCount = topic.hasStarted 
-              ? topicProblems.filter(p => !p.isAvailableToday).length
-              : topic.problems.length;
-            
-            return (
-              <div key={topic.id} className="rounded-lg bg-gray-800 p-6 shadow">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <h4 className="text-xl font-semibold text-white">{topic.name}</h4>
-                      {topic.isActive && (
-                        <span className="rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold">
-                          ACTIVE
-                        </span>
-                      )}
-                      {topic.topicCompletedAt && (
-                        <span className="rounded-full bg-green-600 px-3 py-1 text-xs font-semibold">
-                          COMPLETED
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-400">{topic.description}</p>
-                    {topic.topicStartedAt && (
-                      <div className="mt-2 flex gap-4 text-sm text-gray-400">
-                        <span>
-                          Started: {new Date(topic.topicStartedAt).toLocaleDateString()}
-                        </span>
-                        {topic.topicCompletedAt ? (
-                          <span className="text-green-400">
-                            Completed in {Math.floor((new Date(topic.topicCompletedAt).getTime() - new Date(topic.topicStartedAt).getTime()) / (1000 * 60 * 60 * 24))} days
-                          </span>
-                        ) : topic.isActive && (
-                          <span className="text-indigo-400">
-                            {Math.floor((new Date().getTime() - new Date(topic.topicStartedAt).getTime()) / (1000 * 60 * 60 * 24))} days elapsed
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    <div className="mt-2 flex gap-2">
-                      {topic.subcategories.map((sub) => (
-                        <span
-                          key={sub}
-                          className="rounded-full bg-indigo-900 px-3 py-1 text-xs text-indigo-300"
-                        >
-                          {sub}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-white">
-                      {availableCount}/{topic.problems.length}
-                    </div>
-                    <div className="text-sm text-gray-400">Unlocked</div>
-                    {lockedCount > 0 && (
-                      <div className="text-xs text-red-400 mt-1">🔒 {lockedCount} locked</div>
-                    )}
-                  </div>
+            {/* Upcoming Weeks Preview */}
+            {currentWeek < syllabus.totalWeeks && (
+              <Card className="mt-6 border-purple-500/20 bg-black/50 p-6 text-center backdrop-blur-xl">
+                <div className="text-gray-400">
+                  <span className="font-semibold text-white">
+                    {syllabus.totalWeeks - currentWeek}
+                  </span>{" "}
+                  weeks remaining
                 </div>
-                
-                {availableCount > 0 && (
-                  <div className="mt-4">
-                    <Link href={`/contest/${contestId}/topic/${topic.id}`}>
-                      <Button>View Problems</Button>
-                    </Link>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {isCreator && (
-          <div className="mt-8 rounded-lg bg-gray-800 p-6">
-            <h3 className="text-xl font-bold text-white mb-4">AI Suggestions</h3>
-            <Button 
-              onClick={() => generateSuggestion.mutate({ userId: user?.id ?? "", contestId })}
-              disabled={generateSuggestion.isPending}
-              className="mb-4"
-            >
-              {generateSuggestion.isPending ? "Generating..." : "Generate Daily Suggestion"}
-            </Button>
-            
-            {suggestions && suggestions.length > 0 && (
-              <div className="space-y-4">
-                {suggestions.map((suggestion) => (
-                  <div key={suggestion.id} className="border border-gray-700 rounded p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-white">{suggestion.topicName}</h4>
-                        <p className="text-sm text-gray-400 mt-1">{suggestion.reasoning}</p>
-                        <div className="mt-2 flex gap-2">
-                          {suggestion.subcategories.map((sub: string) => (
-                            <span key={sub} className="text-xs bg-indigo-900 text-indigo-300 px-2 py-1 rounded">
-                              {sub}
-                            </span>
-                          ))}
-                        </div>
-                        <p className="text-sm text-gray-400 mt-2">Difficulty: <span className="text-yellow-400">{suggestion.difficulty}</span></p>
-                      </div>
-                      {!suggestion.isApplied && (
-                        <Button
-                          size="sm"
-                          onClick={() => applySuggestion.mutate({ userId: user?.id ?? "", suggestionId: suggestion.id })}
-                          disabled={applySuggestion.isPending}
-                        >
-                          {applySuggestion.isPending ? "Applying..." : "Apply"}
-                        </Button>
-                      )}
-                      {suggestion.isApplied && (
-                        <span className="text-sm text-green-400">Applied ✓</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                <div className="mt-2 text-sm text-gray-500">
+                  Keep your streak going! 🔥
+                </div>
+              </Card>
             )}
-          </div>
+          </motion.div>
         )}
-      </main>
+
+        {/* Payment Modal */}
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          contestId={contest.id}
+          amount={contest.penaltyAmount}
+          weekNumber={needsPayment && hasPaid ? undefined : currentWeek}
+          onSuccess={() => {
+            void refetchContest();
+          }}
+        />
+      </div>
     </div>
   );
 }
