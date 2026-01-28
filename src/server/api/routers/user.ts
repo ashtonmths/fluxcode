@@ -4,19 +4,14 @@ import { createTRPCRouter, protectedProcedure, publicProcedure } from "~/server/
 export const userRouter = createTRPCRouter({
   updateProfile: publicProcedure
     .input(z.object({
-      userId: z.string().optional(),
+      userId: z.string(),
       linkedinUsername: z.string().optional(),
       leetcodeUsername: z.string().optional(),
       name: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const userId = input.userId ?? input.userId;
-      if (!userId) {
-        throw new Error("User ID required");
-      }
-      
       return ctx.db.user.update({
-        where: { id: userId },
+        where: { id: input.userId },
         data: {
           linkedinUsername: input.linkedinUsername,
           leetcodeUsername: input.leetcodeUsername,
@@ -27,11 +22,8 @@ export const userRouter = createTRPCRouter({
     }),
 
   getProfile: publicProcedure
-    .input(z.object({ userId: z.string().optional() }))
+    .input(z.object({ userId: z.string() }))
     .query(async ({ ctx, input }) => {
-      if (!input.userId) {
-        return null;
-      }
       const user = await ctx.db.user.findUnique({
         where: { id: input.userId },
         include: {
@@ -115,6 +107,32 @@ export const userRouter = createTRPCRouter({
           freezesLeft: { decrement: 1 },
           lastActiveAt: new Date(),
         },
+      });
+    }),
+
+  searchUsers: publicProcedure
+    .input(z.object({ query: z.string() }))
+    .query(async ({ ctx, input }) => {
+      if (input.query.length < 3) {
+        return [];
+      }
+
+      return ctx.db.user.findMany({
+        where: {
+          OR: [
+            { name: { contains: input.query, mode: "insensitive" } },
+            { email: { contains: input.query, mode: "insensitive" } },
+            { leetcodeUsername: { contains: input.query, mode: "insensitive" } },
+          ],
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          leetcodeUsername: true,
+          image: true,
+        },
+        take: 10,
       });
     }),
 });
