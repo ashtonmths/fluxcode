@@ -63,7 +63,7 @@ export function NavBar() {
             <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 group-hover:bg-primary/20 transition-colors">
               <Code2 className="h-5 w-5 text-primary" />
             </div>
-            <span className="text-xl font-bold bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">
+            <span className="text-xl font-bold text-white hover:text-primary transition-colors">
               FluxCode
             </span>
           </Link>
