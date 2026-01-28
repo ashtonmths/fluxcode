@@ -48,6 +48,7 @@
     "pg": "^8.17.2",
     "pusher": "^5.2.0",
     "pusher-js": "^8.4.0-rc2",
+    "razorpay": "^2.9.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^2.15.1",
