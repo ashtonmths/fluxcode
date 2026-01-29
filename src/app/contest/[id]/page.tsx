@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
@@ -132,7 +133,7 @@ export default function ContestDashboard() {
           // Get user's progress for previous week's weekend problems
           const weekendProblemIds = new Set(previousWeekData.weekendTest.problems.map(p => p.id));
           const solvedWeekendProblems = contest.userProgress?.filter(
-            p => weekendProblemIds.has(p.problem.leetcodeId as string) && p.completed
+            p => weekendProblemIds.has(p.problem.leetcodeId) && p.completed
           ).length ?? 0;
 
           // If user solved less than 2 weekend problems and is marked as paid, trigger penalty check
@@ -201,7 +202,7 @@ export default function ContestDashboard() {
     // Get actual solved data from userProgress
     // Map by leetcodeId (from syllabus) instead of database problemId
     const userProgressMap = new Map(
-      contest?.userProgress?.map((p) => [p.problem.leetcodeId as string, p.completed]) ?? []
+      contest?.userProgress?.map((p) => [p.problem.leetcodeId, p.completed]) ?? []
     );
 
     const weekdayProblems = week.weekdayHomework.map((p) => ({
@@ -468,8 +469,8 @@ export default function ContestDashboard() {
                                 className="flex items-center gap-3 hover:opacity-80 transition-opacity"
                               >
                                 <img
-                                  src={(participant.image as string | null) ?? `https://ui-avatars.com/api/?name=${encodeURIComponent((participant.name as string | null) ?? "User")}&background=6366f1&color=fff`}
-                                  alt={(participant.name as string | null) ?? "User"}
+                                  src={participant.image ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(participant.name ?? "User")}&background=6366f1&color=fff`}
+                                  alt={participant.name ?? "User"}
                                   className="h-10 w-10 rounded-full"
                                 />
                                 <div>
