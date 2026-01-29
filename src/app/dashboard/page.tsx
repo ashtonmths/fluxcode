@@ -124,26 +124,26 @@ export default function Dashboard() {
             transition={{ delay: 0.3 }}
             className="grid grid-cols-1 md:grid-cols-3 gap-6"
           >
-            <div className="rounded-3xl p-8 bg-white/5 border border-white/10 hover:border-primary/30 transition-all duration-300 group">
-              <Trophy className="h-10 w-10 text-primary mb-4 group-hover:scale-110 transition-transform" />
-              <h3 className="text-3xl font-bold text-white mb-2">{contests.length}</h3>
-              <p className="text-white/60">Total Contests</p>
+            <div className="rounded-3xl p-4 bg-white/5 border border-white/10 hover:border-primary/30 transition-all duration-300 group">
+              <Trophy className="h-8 w-8 text-primary mb-2 group-hover:scale-110 transition-transform" />
+              <h3 className="text-2xl font-bold text-white mb-1">{contests.length}</h3>
+              <p className="text-white/60 text-sm">Total Contests</p>
             </div>
             
-            <div className="rounded-3xl p-8 bg-white/5 border border-white/10 hover:border-accent/30 transition-all duration-300 group">
-              <TrendingUp className="h-10 w-10 text-accent mb-4 group-hover:scale-110 transition-transform" />
-              <h3 className="text-3xl font-bold text-white mb-2">
+            <div className="rounded-3xl p-4 bg-white/5 border border-white/10 hover:border-accent/30 transition-all duration-300 group">
+              <TrendingUp className="h-8 w-8 text-accent mb-2 group-hover:scale-110 transition-transform" />
+              <h3 className="text-2xl font-bold text-white mb-1">
                 {contests.filter(c => c.creator.id === userId).length}
               </h3>
-              <p className="text-white/60">Contests Created</p>
+              <p className="text-white/60 text-sm">Contests Created</p>
             </div>
             
-            <div className="rounded-3xl p-8 bg-white/5 border border-white/10 hover:border-primary/30 transition-all duration-300 group">
-              <Users className="h-10 w-10 text-primary mb-4 group-hover:scale-110 transition-transform" />
-              <h3 className="text-3xl font-bold text-white mb-2">
+            <div className="rounded-3xl p-4 bg-white/5 border border-white/10 hover:border-primary/30 transition-all duration-300 group">
+              <Users className="h-8 w-8 text-primary mb-2 group-hover:scale-110 transition-transform" />
+              <h3 className="text-2xl font-bold text-white mb-1">
                 {contests.reduce((sum, c) => sum + c._count.participants, 0)}
               </h3>
-              <p className="text-white/60">Total Participants</p>
+              <p className="text-white/60 text-sm">Total Participants</p>
             </div>
           </motion.div>
         )}

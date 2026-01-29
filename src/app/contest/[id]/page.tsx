@@ -286,6 +286,18 @@ export default function ContestDashboard() {
             </motion.div>
           </Card>
         </div>
+
+        {/* Payment Modal */}
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          contestId={contest.id}
+          amount={contest.penaltyAmount}
+          weekNumber={paymentStatus === "paid" ? currentWeek : undefined}
+          onSuccess={() => {
+            void refetchContest();
+          }}
+        />
       </div>
     );
   }
