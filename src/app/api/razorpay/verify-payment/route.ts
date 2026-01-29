@@ -53,8 +53,7 @@ export async function POST(request: Request) {
           },
         },
         data: {
-          hasPaid: true,
-          needsPayment: false,
+          paymentStatus: "paid",
           lastPaymentDate: new Date(),
         },
       });
@@ -68,7 +67,7 @@ export async function POST(request: Request) {
           },
         },
         data: {
-          needsPayment: false,
+          paymentStatus: "paid",
           lastPaymentDate: new Date(),
           currentStreak: 0,
         },

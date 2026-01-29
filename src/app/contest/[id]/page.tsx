@@ -2,7 +2,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Card } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
@@ -52,6 +52,8 @@ export default function ContestDashboard() {
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [view, setView] = useState<"dashboard" | "leaderboard">("dashboard");
+  const [collapsedWeeks, setCollapsedWeeks] = useState<Set<number>>(new Set());
+  const penaltyCheckDone = useRef(false);
 
   const { data: contest, refetch: refetchContest } = api.contest.getById.useQuery(
     { id: contestId, userId: userId ?? undefined },
@@ -75,6 +77,8 @@ export default function ContestDashboard() {
       void refetchContest();
     },
   });
+
+  const checkPenalties = api.contest.checkWeekendPenalties.useMutation();
 
   useEffect(() => {
     const supabase = createClient();
@@ -109,16 +113,42 @@ export default function ContestDashboard() {
   }, [contest?.difficulty]);
 
   useEffect(() => {
-    // Calculate current week based on start date
-    if (contest?.startDate) {
+    // Calculate current week and check weekend penalty status
+    if (contest?.startDate && syllabus && userId && contestId && !penaltyCheckDone.current) {
       const start = new Date(contest.startDate);
       const today = new Date();
       const weeksSinceStart = Math.floor(
         (today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 7)
       );
-      setCurrentWeek(Math.max(1, weeksSinceStart + 1));
+      const calculatedWeek = Math.max(1, weeksSinceStart + 1);
+      setCurrentWeek(calculatedWeek);
+
+      // Check if user is in a later week and hasn't completed previous weekend test
+      if (calculatedWeek > 1) {
+        const previousWeek = calculatedWeek - 1;
+        const previousWeekData = syllabus.weeks[previousWeek - 1];
+        
+        if (previousWeekData) {
+          // Get user's progress for previous week's weekend problems
+          const weekendProblemIds = new Set(previousWeekData.weekendTest.problems.map(p => p.id));
+          const solvedWeekendProblems = contest.userProgress?.filter(
+            p => weekendProblemIds.has(p.problem.leetcodeId) && p.completed
+          ).length ?? 0;
+
+          // If user solved less than 2 weekend problems and is marked as paid, trigger penalty check
+          const participant = contest.participants.find(p => p.userId === userId);
+          if (solvedWeekendProblems < 2 && participant?.paymentStatus === "paid") {
+            penaltyCheckDone.current = true;
+            checkPenalties.mutate({ contestId, userId }, {
+              onSuccess: () => {
+                void refetchContest();
+              }
+            });
+          }
+        }
+      }
     }
-  }, [contest?.startDate]);
+  }, [contest?.startDate, contest?.userProgress, contest?.participants, syllabus, userId, contestId, refetchContest]);
 
   if (isLoading || !contest) {
     return (
@@ -134,8 +164,7 @@ export default function ContestDashboard() {
     (p) => p.userId === userId
   );
   const isParticipant = !!participant;
-  const needsPayment = participant?.needsPayment ?? true;
-  const hasPaid = participant?.hasPaid ?? false;
+  const paymentStatus = participant?.paymentStatus ?? "pending";
 
   const handleJoinContest = () => {
     if (!userId) return;
@@ -284,7 +313,7 @@ export default function ContestDashboard() {
           </div>
 
           {/* Payment Status Warning */}
-          {isParticipant && needsPayment && !hasPaid && (
+          {isParticipant && paymentStatus === "pending" && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -353,6 +382,18 @@ export default function ContestDashboard() {
                   key={week.weekNumber}
                   week={getWeekData(week)}
                   isWeekend={isWeekend()}
+                  isCollapsed={collapsedWeeks.has(week.weekNumber)}
+                  onToggleCollapse={() => {
+                    setCollapsedWeeks((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(week.weekNumber)) {
+                        next.delete(week.weekNumber);
+                      } else {
+                        next.add(week.weekNumber);
+                      }
+                      return next;
+                    });
+                  }}
                   onVerify={async (problemId: string, problemTitle: string) => {
                     if (!userId) return;
                     await markProblemCompleted.mutateAsync({
@@ -414,27 +455,28 @@ export default function ContestDashboard() {
                           participant.problemsSolvedToday,
                           currentWeek
                         );
-                        const paymentStatus = participant.needsPayment && !participant.hasPaid ? "Pending" : "Paid";
+                        const displayStatus = participant.paymentStatus === "pending" ? "Pending" : participant.paymentStatus === "paid" ? "Paid" : "Failed";
                         
                         return (
                           <tr key={participant.userId} className="border-b border-white/5 hover:bg-white/5">
                             <td className="px-6 py-4 text-white font-semibold text-base">#{index + 1}</td>
                             <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                {participant.image && (
-                                  <img
-                                    src={participant.image}
-                                    alt={participant.name ?? "User"}
-                                    className="h-10 w-10 rounded-full"
-                                  />
-                                )}
+                              <a 
+                                href={`/profile/${participant.userId}`}
+                                className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                              >
+                                <img
+                                  src={participant.image ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(participant.name ?? "User")}&background=6366f1&color=fff`}
+                                  alt={participant.name ?? "User"}
+                                  className="h-10 w-10 rounded-full"
+                                />
                                 <div>
-                                  <div className="text-white font-medium text-base">{participant.name}</div>
+                                  <div className="text-white font-medium text-base hover:text-primary transition-colors">{participant.name}</div>
                                   {participant.leetcodeUsername && (
                                     <div className="text-sm text-gray-400">@{participant.leetcodeUsername}</div>
                                   )}
                                 </div>
-                              </div>
+                              </a>
                             </td>
                             <td className="px-6 py-4 text-center">
                               <Badge className="bg-purple-500/20 text-purple-400 text-base">
@@ -458,12 +500,14 @@ export default function ContestDashboard() {
                             <td className="px-6 py-4 text-center">
                               <Badge
                                 className={
-                                  paymentStatus === "Paid"
+                                  displayStatus === "Paid"
                                     ? "bg-green-500/20 text-green-400 text-base"
-                                    : "bg-yellow-500/20 text-yellow-400 text-base"
+                                    : displayStatus === "Pending"
+                                    ? "bg-yellow-500/20 text-yellow-400 text-base"
+                                    : "bg-red-500/20 text-red-400 text-base"
                                 }
                               >
-                                {paymentStatus}
+                                {displayStatus}
                               </Badge>
                             </td>
                           </tr>
@@ -482,7 +526,7 @@ export default function ContestDashboard() {
           onClose={() => setShowPaymentModal(false)}
           contestId={contest.id}
           amount={contest.penaltyAmount}
-          weekNumber={needsPayment && hasPaid ? undefined : currentWeek}
+          weekNumber={paymentStatus === "paid" ? currentWeek : undefined}
           onSuccess={() => {
             void refetchContest();
           }}

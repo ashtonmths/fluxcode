@@ -42,7 +42,7 @@ interface Contest {
   startDate: string;
   difficulty: string;
   currentStreak: number;
-  hasPaid: boolean;
+  paymentStatus: string;
   lastWeekendSuccess: boolean;
 }
 
@@ -335,12 +335,14 @@ export default function ProfilePage() {
                       <span className="text-gray-400">Payment Status</span>
                       <span
                         className={
-                          contest.hasPaid
+                          contest.paymentStatus === "paid"
                             ? "font-semibold text-green-400"
+                            : contest.paymentStatus === "pending"
+                            ? "font-semibold text-yellow-400"
                             : "font-semibold text-red-400"
                         }
                       >
-                        {contest.hasPaid ? "Paid" : "Pending"}
+                        {contest.paymentStatus === "paid" ? "Paid" : contest.paymentStatus === "pending" ? "Pending" : "Failed"}
                       </span>
                     </div>
                     <div className="flex justify-between">

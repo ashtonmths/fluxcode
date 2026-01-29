@@ -283,8 +283,7 @@ export const contestRouter = createTRPCRouter({
             leetcodeUsername: participant.user.leetcodeUsername,
             currentStreak: streak?.currentStreak ?? 0,
             problemsSolvedToday,
-            needsPayment: participant.needsPayment,
-            hasPaid: participant.hasPaid,
+            paymentStatus: participant.paymentStatus,
           };
         })
       );
@@ -458,21 +457,15 @@ export const contestRouter = createTRPCRouter({
     }),
 
   checkWeekendPenalties: protectedProcedure
-    .input(z.object({ contestId: z.string() }))
+    .input(z.object({ contestId: z.string(), userId: z.string().optional() }))
     .mutation(async ({ ctx, input }) => {
-      // Check if it's Monday
-      const today = new Date();
-      const dayOfWeek = today.getDay();
       
-      if (dayOfWeek !== 1) {
-        throw new Error("Penalty checks only run on Mondays");
-      }
-
       // Get contest
       const contest = await ctx.db.contest.findUnique({
         where: { id: input.contestId },
         include: {
           participants: {
+            where: input.userId ? { userId: input.userId } : undefined,
             include: {
               user: true,
             },
@@ -485,45 +478,45 @@ export const contestRouter = createTRPCRouter({
       }
 
       // Check each participant's weekend test completion
+      const today = new Date();
       for (const participant of contest.participants) {
-        // Skip if already paid this week
+        // Check if they've already paid the penalty this week
         const lastPaymentDate = participant.lastPaymentDate;
-        if (lastPaymentDate) {
-          const daysSincePayment = Math.floor(
-            (today.getTime() - lastPaymentDate.getTime()) / (1000 * 60 * 60 * 24)
-          );
-          if (daysSincePayment < 7) {
-            continue;
-          }
-        }
+        const hasRecentPayment = lastPaymentDate && 
+          Math.floor((today.getTime() - lastPaymentDate.getTime()) / (1000 * 60 * 60 * 24)) < 7;
 
-        // Check weekend problems completion (requires 2/3 solved)
-        const lastWeekendAttempt = participant.lastWeekendAttempt;
-        const lastWeekendSuccess = participant.lastWeekendSuccess;
-
-        if (!lastWeekendSuccess && lastWeekendAttempt) {
-          // Failed weekend test (0-1 solved) - mark for penalty payment
+        // Only mark as pending if:
+        // 1. They didn't pass the weekend test AND
+        // 2. They haven't paid the penalty in the last 7 days
+        if (!participant.lastWeekendSuccess && !hasRecentPayment) {
           await ctx.db.contestParticipant.update({
             where: { id: participant.id },
             data: {
-              needsPayment: true,
+              paymentStatus: "pending",
               currentStreak: 0,
-              hasPaid: false,
-            },
-          });
-        } else if (lastWeekendSuccess) {
-          // Passed weekend test (2-3 solved) - money carries over, no payment needed
-          await ctx.db.contestParticipant.update({
-            where: { id: participant.id },
-            data: {
-              currentStreak: { increment: 1 },
-              needsPayment: false,
-              hasPaid: true,
             },
           });
         }
       }
 
       return { message: "Penalty check completed" };
+    }),
+
+  getTotalRevenue: protectedProcedure
+    .input(z.object({ contestId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      // Get all completed payments for this contest
+      const payments = await ctx.db.payment.findMany({
+        where: {
+          contestId: input.contestId,
+          status: "completed",
+        },
+        select: {
+          amount: true,
+        },
+      });
+
+      const totalRevenue = payments.reduce((sum, payment) => sum + payment.amount, 0);
+      return { totalRevenue };
     }),
 });

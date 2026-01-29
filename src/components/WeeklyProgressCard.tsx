@@ -2,7 +2,7 @@
 
 import { Card } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
-import { Lock } from "lucide-react";
+import { Lock, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 
 // Convert problem title to LeetCode URL slug
@@ -42,10 +42,12 @@ interface WeekData {
 interface WeeklyProgressCardProps {
   week: WeekData;
   isWeekend: boolean;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
   onVerify?: (problemId: string, problemTitle: string) => Promise<void>;
 }
 
-export function WeeklyProgressCard({ week, isWeekend, onVerify }: WeeklyProgressCardProps) {
+export function WeeklyProgressCard({ week, isWeekend, isCollapsed, onToggleCollapse, onVerify }: WeeklyProgressCardProps) {
   const isWeekendToday = isWeekendDay();
 
   const successMessages = [
@@ -105,10 +107,25 @@ export function WeeklyProgressCard({ week, isWeekend, onVerify }: WeeklyProgress
   return (
     <Card className="border-primary/20 bg-black/50 p-6 backdrop-blur-xl">
       <div className="mb-4 flex items-start justify-between">
-        <div>
-          <h3 className="text-xl font-bold text-white">
-            Week {week.weekNumber}
-          </h3>
+        <div className="flex-1">
+          <div className="flex items-center gap-3">
+            <h3 className="text-xl font-bold text-white">
+              Week {week.weekNumber}
+            </h3>
+            {onToggleCollapse && (
+              <button
+                onClick={onToggleCollapse}
+                className="rounded-lg p-1 hover:bg-white/10 transition-colors"
+                aria-label={isCollapsed ? "Expand" : "Collapse"}
+              >
+                {isCollapsed ? (
+                  <ChevronDown className="h-5 w-5 text-gray-400" />
+                ) : (
+                  <ChevronUp className="h-5 w-5 text-gray-400" />
+                )}
+              </button>
+            )}
+          </div>
           <p className="text-sm text-gray-400">{week.topic}</p>
         </div>
         <Badge className="bg-primary/20 text-primary">
@@ -116,11 +133,13 @@ export function WeeklyProgressCard({ week, isWeekend, onVerify }: WeeklyProgress
         </Badge>
       </div>
 
-      {/* Weekday Homework - Always Blue */}
-      <div className="mb-4">
-        <div className="mb-2 flex items-center gap-2">
-          <div className="h-3 w-3 rounded-full bg-primary" />
-          <span className="font-semibold text-white">Weekday Homework</span>
+      {!isCollapsed && (
+        <>
+          {/* Weekday Homework - Always Blue */}
+          <div className="mb-4">
+            <div className="mb-2 flex items-center gap-2">
+              <div className="h-3 w-3 rounded-full bg-primary" />
+              <span className="font-semibold text-white">Weekday Homework</span>
           <span className="text-sm text-white/60">
             ({week.weekdaySolved}/{week.weekdayHomework.length} solved)
           </span>
@@ -254,6 +273,8 @@ export function WeeklyProgressCard({ week, isWeekend, onVerify }: WeeklyProgress
           </div>
         </div>
       </div>
+        </>
+      )}
     </Card>
   );
 }

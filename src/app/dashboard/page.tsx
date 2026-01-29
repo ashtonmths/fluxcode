@@ -93,7 +93,7 @@ export default function Dashboard() {
                 header={
                   <div className="absolute inset-0 bg-linear-to-br from-primary/20 via-purple-500/10 to-transparent" />
                 }
-                onClick={() => router.push(`/contest/${contest.id}`)}
+                onClick={() => router.push(`/dashboard/${contest.id}`)}
               />
             ))}
           </BentoGrid>

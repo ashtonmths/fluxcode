@@ -85,6 +85,77 @@ async function updateStreak(db: PrismaClient, userId: string, contestId: string)
   }
 }
 
+// Helper function to update weekend test status
+async function updateWeekendTestStatus(db: PrismaClient, userId: string, contestId: string) {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  
+  // Only track weekend tests on Saturday (6) and Sunday (0)
+  if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+    return;
+  }
+
+  // Get the contest participant
+  const participant = await db.contestParticipant.findUnique({
+    where: {
+      contestId_userId: {
+        contestId,
+        userId,
+      },
+    },
+  });
+
+  if (!participant) {
+    return;
+  }
+
+  // Get all weekend problems for this contest from UserProgress
+  // Weekend problems are identified by their title pattern or we need to fetch from contest syllabus
+  // For now, we'll count all problems solved during the current weekend
+  
+  // Get start of current weekend (Saturday)
+  const currentSaturday = new Date(now);
+  currentSaturday.setDate(now.getDate() - (dayOfWeek === 0 ? 1 : dayOfWeek - 6));
+  currentSaturday.setHours(0, 0, 0, 0);
+  
+  // Get end of current weekend (Sunday end)
+  const currentSundayEnd = new Date(currentSaturday);
+  currentSundayEnd.setDate(currentSaturday.getDate() + 2);
+  currentSundayEnd.setHours(23, 59, 59, 999);
+
+  // Count problems solved this weekend
+  const weekendProblemsCount = await db.userProgress.count({
+    where: {
+      userId,
+      topic: {
+        contestId,
+      },
+      completed: true,
+      completedAt: {
+        gte: currentSaturday,
+        lte: currentSundayEnd,
+      },
+    },
+  });
+
+  // Update participant's weekend test status
+  // Success = solved 2 or 3 problems, Failure = 0 or 1 problem
+  const lastWeekendSuccess = weekendProblemsCount >= 2;
+  
+  await db.contestParticipant.update({
+    where: {
+      contestId_userId: {
+        contestId,
+        userId,
+      },
+    },
+    data: {
+      lastWeekendAttempt: now,
+      lastWeekendSuccess,
+    },
+  });
+}
+
 export const progressRouter = createTRPCRouter({
   getUserProgress: protectedProcedure
     .input(z.object({ userId: z.string() }))
@@ -307,6 +378,9 @@ export const progressRouter = createTRPCRouter({
         // Update streak
         await updateStreak(ctx.db, input.userId, input.contestId);
         
+        // Check if this is a weekend problem and update weekend test tracking
+        await updateWeekendTestStatus(ctx.db, input.userId, input.contestId);
+        
         return result;
       }
 
@@ -324,6 +398,9 @@ export const progressRouter = createTRPCRouter({
       
       // Update streak
       await updateStreak(ctx.db, input.userId, input.contestId);
+      
+      // Check if this is a weekend problem and update weekend test tracking
+      await updateWeekendTestStatus(ctx.db, input.userId, input.contestId);
       
       return result;
     }),
