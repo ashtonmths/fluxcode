@@ -156,6 +156,33 @@ async function updateWeekendTestStatus(db: PrismaClient, userId: string, contest
   });
 }
 
+// Helper function to award points for completing problems
+async function awardPoints(db: PrismaClient, userId: string, contestId: string, _problemId: string) {
+  // Get contest to access syllabus (we'll determine if homework or weekend based on problemId)
+  // For now, we'll award points based on a simple rule:
+  // - Homework problems: 10 points
+  // - Weekend problems: 20 points
+  // We'll identify weekend problems by checking if they're solved on weekends
+  
+  const dayOfWeek = new Date().getDay();
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+  
+  // Award 20 points for weekend problems, 10 for homework
+  const points = isWeekend ? 20 : 10;
+  
+  await db.contestParticipant.updateMany({
+    where: {
+      userId,
+      contestId,
+    },
+    data: {
+      points: {
+        increment: points,
+      },
+    },
+  });
+}
+
 export const progressRouter = createTRPCRouter({
   getUserProgress: protectedProcedure
     .input(z.object({ userId: z.string() }))
@@ -401,6 +428,9 @@ export const progressRouter = createTRPCRouter({
       
       // Check if this is a weekend problem and update weekend test tracking
       await updateWeekendTestStatus(ctx.db, input.userId, input.contestId);
+      
+      // Award points for problem completion
+      await awardPoints(ctx.db, input.userId, input.contestId, input.problemId);
       
       return result;
     }),

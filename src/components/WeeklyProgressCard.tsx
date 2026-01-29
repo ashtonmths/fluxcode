@@ -43,11 +43,12 @@ interface WeeklyProgressCardProps {
   week: WeekData;
   isWeekend: boolean;
   isCollapsed?: boolean;
+  showWeekendTest?: boolean; // New prop to control weekend test visibility
   onToggleCollapse?: () => void;
   onVerify?: (problemId: string, problemTitle: string) => Promise<void>;
 }
 
-export function WeeklyProgressCard({ week, isWeekend, isCollapsed, onToggleCollapse, onVerify }: WeeklyProgressCardProps) {
+export function WeeklyProgressCard({ week, isWeekend, isCollapsed, showWeekendTest = true, onToggleCollapse, onVerify }: WeeklyProgressCardProps) {
   const isWeekendToday = isWeekendDay();
 
   const successMessages = [
@@ -190,19 +191,20 @@ export function WeeklyProgressCard({ week, isWeekend, isCollapsed, onToggleColla
         </div>
       </div>
 
-      {/* Weekend Test - Color Coded */}
-      <div className="relative">
-        {/* Blur overlay when not weekend */}
-        {!isWeekendToday && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-black/80 backdrop-blur-md">
-            <div className="flex flex-col items-center gap-2 text-white">
-              <Lock className="h-8 w-8" />
-              <p className="text-sm font-semibold">Available on Weekends</p>
-              <p className="text-xs text-white/60">Saturday & Sunday</p>
+      {/* Weekend Test - Only show for previous weeks, not current week */}
+      {showWeekendTest && (
+        <div className="relative">
+          {/* Blur overlay when not weekend */}
+          {!isWeekendToday && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-black/80 backdrop-blur-md">
+              <div className="flex flex-col items-center gap-2 text-white">
+                <Lock className="h-8 w-8" />
+                <p className="text-sm font-semibold">Available on Weekends</p>
+                <p className="text-xs text-white/60">Saturday & Sunday</p>
+              </div>
             </div>
-          </div>
-        )}
-        <div className="mb-2 flex items-center gap-2">
+          )}
+          <div className="mb-2 flex items-center gap-2">
           <div
             className={`h-3 w-3 rounded-full ${
               week.weekendSolved === 0 || week.weekendSolved === 1
@@ -273,6 +275,7 @@ export function WeeklyProgressCard({ week, isWeekend, isCollapsed, onToggleColla
           </div>
         </div>
       </div>
+      )}
         </>
       )}
     </Card>
