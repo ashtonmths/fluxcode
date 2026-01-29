@@ -130,10 +130,10 @@ export function PaymentModal({
               ? `You need to pay ₹${amount} penalty for failing week ${weekNumber} weekend test.`
               : `Pay ₹${amount} to join this contest.`}
           </p>
-          <div className="mb-6 rounded-lg bg-purple-500/10 p-4">
+          <div className="mb-6 rounded-lg bg-black/50 p-4">
             <div className="flex items-center justify-between">
               <span className="text-lg text-white">Amount:</span>
-              <span className="text-2xl font-bold text-purple-400">
+              <span className="text-2xl font-bold text-white">
                 ₹{amount}
               </span>
             </div>
@@ -142,7 +142,7 @@ export function PaymentModal({
             <button
               onClick={initializePayment}
               disabled={loading}
-              className="flex-1 rounded-lg bg-linear-to-r from-purple-500 to-pink-500 px-6 py-3 font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="flex-1 rounded-lg border border-purple-500/20 bg-black/50 px-6 py-3 font-semibold text-white transition-opacity hover:bg-purple-500/10 disabled:opacity-50"
             >
               {loading ? "Processing..." : "Pay Now"}
             </button>
