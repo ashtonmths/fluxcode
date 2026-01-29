@@ -289,6 +289,7 @@ export const contestRouter = createTRPCRouter({
         select: {
           userId: true,
           paymentStatus: true,
+          points: true,
           user: {
             select: {
               id: true,
@@ -364,6 +365,7 @@ export const contestRouter = createTRPCRouter({
         currentStreak: streakMap.get(participant.userId) ?? 0,
         problemsSolvedToday: progressMap.get(participant.userId) ?? [],
         paymentStatus: participant.paymentStatus,
+        points: participant.points,
       }));
 
       return leaderboardData;
