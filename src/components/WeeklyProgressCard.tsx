@@ -44,11 +44,12 @@ interface WeeklyProgressCardProps {
   isWeekend: boolean;
   isCollapsed?: boolean;
   showWeekendTest?: boolean; // New prop to control weekend test visibility
+  isPaid?: boolean; // New prop to show lock on problems if not paid
   onToggleCollapse?: () => void;
   onVerify?: (problemId: string, problemTitle: string) => Promise<void>;
 }
 
-export function WeeklyProgressCard({ week, isWeekend, isCollapsed, showWeekendTest = true, onToggleCollapse, onVerify }: WeeklyProgressCardProps) {
+export function WeeklyProgressCard({ week, isWeekend, isCollapsed, showWeekendTest = true, isPaid = true, onToggleCollapse, onVerify }: WeeklyProgressCardProps) {
   const isWeekendToday = isWeekendDay();
 
   const successMessages = [
@@ -151,7 +152,10 @@ export function WeeklyProgressCard({ week, isWeekend, isCollapsed, showWeekendTe
               key={problem.id}
               className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-3 py-2"
             >
-              <span className="text-sm text-white">{problem.title}</span>
+              <div className="flex items-center gap-2">
+                {!isPaid && <Lock className="h-4 w-4 text-red-400" />}
+                <span className="text-sm text-white">{problem.title}</span>
+              </div>
               <div className="flex items-center gap-2">
                 <Badge
                   className={
@@ -228,7 +232,10 @@ export function WeeklyProgressCard({ week, isWeekend, isCollapsed, showWeekendTe
               key={problem.id}
               className={`flex items-center justify-between rounded-lg border px-3 py-2 ${getWeekendColor()}`}
             >
-              <span className={`text-sm ${!isWeekendToday ? 'invisible' : 'text-white'}`}>{problem.title}</span>
+              <div className="flex items-center gap-2">
+                {!isPaid && <Lock className="h-4 w-4 text-red-400" />}
+                <span className={`text-sm ${!isWeekendToday ? 'invisible' : 'text-white'}`}>{problem.title}</span>
+              </div>
               <div className={`flex items-center gap-2 ${!isWeekendToday ? 'invisible' : ''}`}>
                 <Badge
                   className={

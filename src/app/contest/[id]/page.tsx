@@ -211,7 +211,7 @@ export default function ContestDashboard() {
     return (
       <div className="min-h-screen bg-linear-to-b from-black via-purple-950/10 to-black">
         <div className="container mx-auto px-4 py-20">
-      q    <div className="text-center text-gray-400">Loading...</div>
+         <div className="text-center text-gray-400">Loading...</div>
         </div>
       </div>
     );
@@ -569,6 +569,7 @@ export default function ContestDashboard() {
                   isWeekend={isWeekend()}
                   isCollapsed={collapsedWeeks.has(week.weekNumber)}
                   showWeekendTest={shouldShowWeekendTest(week.weekNumber)}
+                  isPaid={paymentStatus === "completed"}
                   onToggleCollapse={() => {
                     setCollapsedWeeks((prev) => {
                       const next = new Set(prev);
