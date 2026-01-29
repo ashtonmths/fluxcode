@@ -167,15 +167,19 @@ export default function ContestDashboard() {
         (currentMonday.getTime() - startMonday.getTime()) / (1000 * 60 * 60 * 24 * 7)
       );
       const calculatedWeek = Math.max(1, weeksSinceStart + 1);
-      setCurrentWeek(calculatedWeek);
+      
+      // Only update if the week has changed
+      if (calculatedWeek !== currentWeek) {
+        setCurrentWeek(calculatedWeek);
 
-      // Auto-collapse all previous weeks except current week
-      if (calculatedWeek > 1) {
-        const newCollapsed = new Set<number>();
-        for (let i = 1; i < calculatedWeek; i++) {
-          newCollapsed.add(i);
+        // Auto-collapse all previous weeks except current week
+        if (calculatedWeek > 1) {
+          const newCollapsed = new Set<number>();
+          for (let i = 1; i < calculatedWeek; i++) {
+            newCollapsed.add(i);
+          }
+          setCollapsedWeeks(newCollapsed);
         }
-        setCollapsedWeeks(newCollapsed);
       }
 
       // Check if user is in a later week and hasn't completed previous weekend test
@@ -205,7 +209,7 @@ export default function ContestDashboard() {
     }
     // Removed refetchContest from dependencies to prevent infinite loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contest?.startDate, contest?.userProgress, contest?.participants, syllabus, userId, contestId, checkPenalties]);
+  }, [contest?.startDate, syllabus, userId, contestId]);
 
   if (isLoading || !contest) {
     return (
@@ -323,9 +327,9 @@ export default function ContestDashboard() {
   };
 
   // Helper to determine if weekend test should be shown
-  // Only show weekend test for previous weeks, NOT current week
+  // Show weekend test for all weeks up to and including current week
   const shouldShowWeekendTest = (weekNumber: number) => {
-    return weekNumber < currentWeek;
+    return weekNumber <= currentWeek;
   };
 
   const getWeekData = (week: SyllabusWeek) => {
@@ -582,6 +586,7 @@ export default function ContestDashboard() {
                   isCollapsed={collapsedWeeks.has(week.weekNumber)}
                   showWeekendTest={shouldShowWeekendTest(week.weekNumber)}
                   isPaid={paymentStatus === "completed"}
+                  currentWeek={currentWeek}
                   onToggleCollapse={() => {
                     setCollapsedWeeks((prev) => {
                       const next = new Set(prev);

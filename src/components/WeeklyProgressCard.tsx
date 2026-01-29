@@ -45,11 +45,12 @@ interface WeeklyProgressCardProps {
   isCollapsed?: boolean;
   showWeekendTest?: boolean; // New prop to control weekend test visibility
   isPaid?: boolean; // New prop to show lock on problems if not paid
+  currentWeek?: number; // Current week number to determine if lock should show
   onToggleCollapse?: () => void;
   onVerify?: (problemId: string, problemTitle: string) => Promise<void>;
 }
 
-export function WeeklyProgressCard({ week, isWeekend, isCollapsed, showWeekendTest = true, isPaid = true, onToggleCollapse, onVerify }: WeeklyProgressCardProps) {
+export function WeeklyProgressCard({ week, isWeekend, isCollapsed, showWeekendTest = true, isPaid = true, currentWeek, onToggleCollapse, onVerify }: WeeklyProgressCardProps) {
   const isWeekendToday = isWeekendDay();
 
   const successMessages = [
@@ -195,11 +196,11 @@ export function WeeklyProgressCard({ week, isWeekend, isCollapsed, showWeekendTe
         </div>
       </div>
 
-      {/* Weekend Test - Only show for previous weeks, not current week */}
+      {/* Weekend Test - Show for all weeks, lock only current week */}
       {showWeekendTest && (
         <div className="relative">
-          {/* Blur overlay when not weekend */}
-          {!isWeekendToday && (
+          {/* Blur overlay when not weekend - only for current week */}
+          {!isWeekendToday && currentWeek === week.weekNumber && (
             <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-black/80 backdrop-blur-md">
               <div className="flex flex-col items-center gap-2 text-white">
                 <Lock className="h-8 w-8" />
@@ -227,16 +228,20 @@ export function WeeklyProgressCard({ week, isWeekend, isCollapsed, showWeekendTe
           )}
         </div>
         <div className="ml-5 space-y-2">
-          {week.weekendTest.problems.map((problem) => (
-            <div
-              key={problem.id}
-              className={`flex items-center justify-between rounded-lg border px-3 py-2 ${getWeekendColor()}`}
-            >
-              <div className="flex items-center gap-2">
-                {!isPaid && <Lock className="h-4 w-4 text-red-400" />}
-                <span className={`text-sm ${!isWeekendToday ? 'invisible' : 'text-white'}`}>{problem.title}</span>
-              </div>
-              <div className={`flex items-center gap-2 ${!isWeekendToday ? 'invisible' : ''}`}>
+          {week.weekendTest.problems.map((problem) => {
+            // Only hide content for current week when not weekend
+            const shouldHide = !isWeekendToday && currentWeek === week.weekNumber;
+            
+            return (
+              <div
+                key={problem.id}
+                className={`flex items-center justify-between rounded-lg border px-3 py-2 ${getWeekendColor()}`}
+              >
+                <div className="flex items-center gap-2">
+                  {!isPaid && <Lock className="h-4 w-4 text-red-400" />}
+                  <span className={`text-sm ${shouldHide ? 'invisible' : 'text-white'}`}>{problem.title}</span>
+                </div>
+                <div className={`flex items-center gap-2 ${shouldHide ? 'invisible' : ''}`}>
                 <Badge
                   className={
                     problem.difficulty === "Easy"
@@ -259,7 +264,7 @@ export function WeeklyProgressCard({ week, isWeekend, isCollapsed, showWeekendTe
                 </a>
                 <button
                   onClick={() => handleVerify(problem.id, problem.title)}
-                  disabled={(!onVerify || problem.solved) ?? !isWeekendToday}
+                  disabled={(!onVerify || problem.solved)}
                   className="cursor-pointer disabled:cursor-not-allowed"
                 >
                   <Badge className={problem.solved ? "bg-green-500/20 text-green-400" : "bg-purple-500/20 text-purple-400 hover:bg-purple-500/30"}>
@@ -271,7 +276,8 @@ export function WeeklyProgressCard({ week, isWeekend, isCollapsed, showWeekendTe
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
           <div className="flex items-center justify-between text-xs text-white/60">
             <span>Time Limit: {week.weekendTest.timeLimit}</span>
             {week.weekendSolved < 2 && (
