@@ -27,6 +27,7 @@ model User {
   achievements        UserAchievement[]
   notifications       Notification[]
   payments            Payment[]
+  materialProgress    MaterialProgress[]
   createdAt           DateTime             @default(now())
 }
 
@@ -109,6 +110,7 @@ model ContestParticipant {
   role               String    @default("participant")
   isVisible          Boolean   @default(false)
   paymentStatus      String    @default("pending") // "pending", "paid", "failed"
+  points             Int       @default(0)
   currentStreak      Int       @default(0)
   lastPaymentDate    DateTime?
   lastWeekendAttempt DateTime?
@@ -246,4 +248,19 @@ model Payment {
   @@index([contestId])
   @@index([userId])
   @@index([status])
+}
+
+model MaterialProgress {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contestId   String
+  materialId  String // Format: "week1-resource1", "week2-video1"
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, contestId, materialId])
+  @@index([userId, contestId])
+  @@index([completed])
 }
