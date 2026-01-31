@@ -105,6 +105,27 @@ CRON_SECRET=
 
 MIT License - see [LICENSE](LICENSE)
 
+## 👥 Contributors
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/ashtonmths">
+        <img src="https://github.com/ashtonmths.png" width="100px;" alt="subtilizer28"/>
+        <br />
+        <sub><b>Ashton Mathews</b></sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/sushanshetty1">
+        <img src="https://github.com/sushanshetty1.png" width="100px;" alt="sushanshetty1"/>
+        <br />
+        <sub><b>Sushan Shetty</b></sub>
+      </a>
+    </td>
+  </tr>
+</table>
+
 ---
 
 <div align="center">
