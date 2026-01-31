@@ -113,7 +113,7 @@ MIT License - see [LICENSE](LICENSE)
       <a href="https://github.com/ashtonmths">
         <img src="https://github.com/ashtonmths.png" width="100px;" alt="subtilizer28"/>
         <br />
-        <sub><b>Ashton Mathews</b></sub>
+        <sub><b>Ashton Mathias</b></sub>
       </a>
     </td>
     <td align="center">
