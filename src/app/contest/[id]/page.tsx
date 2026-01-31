@@ -743,7 +743,7 @@ export default function ContestDashboard() {
                         {weekMaterials.map((material) => {
                           const isCompleted = materialProgress?.some(
                             p => p.materialId === material.id && p.completed
-                          );
+                          ) ?? false;
 
                           return (
                             <div
@@ -791,6 +791,9 @@ export default function ContestDashboard() {
                                     }
                                   >
                                     {material.type}
+                                  </Badge>
+                                  <Badge className="bg-purple-500/20 text-purple-400 text-xs">
+                                    +5 points
                                   </Badge>
                                   {material.duration && (
                                     <span className="text-xs text-gray-500">
