@@ -52,25 +52,27 @@ export default function CreateContest() {
     void fetchUser();
   }, [router]);
 
-  // Get all Sundays for the next 6 months
-  const getSundays = () => {
-    const sundays: string[] = [];
+  // Get all Mondays for the next 6 months
+  const getMondays = () => {
+    const mondays: string[] = [];
     const today = new Date();
     const sixMonthsLater = new Date();
     sixMonthsLater.setMonth(today.getMonth() + 6);
 
     const current = new Date(today);
-    current.setDate(current.getDate() + ((7 - current.getDay()) % 7));
+    // Calculate days until next Monday (1 = Monday)
+    const daysUntilMonday = (8 - current.getDay()) % 7;
+    current.setDate(current.getDate() + daysUntilMonday);
 
     while (current <= sixMonthsLater) {
-      sundays.push(current.toISOString().split("T")[0]!);
+      mondays.push(current.toISOString().split("T")[0]!);
       current.setDate(current.getDate() + 7);
     }
 
-    return sundays;
+    return mondays;
   };
 
-  const availableSundays = getSundays();
+  const availableMondays = getMondays();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -178,10 +180,10 @@ export default function CreateContest() {
                 </p>
               </div>
 
-              {/* Sunday Date Picker */}
+              {/* Monday Date Picker */}
               <div>
                 <label className="mb-2 block text-sm font-medium text-white">
-                  Start Date (Sundays Only)
+                  Start Date (Mondays Only)
                 </label>
                 <select
                   value={startDate}
@@ -189,10 +191,10 @@ export default function CreateContest() {
                   className="w-full rounded-lg border border-purple-500/20 bg-black/50 px-4 py-3 text-white focus:border-purple-500 focus:outline-none"
                   required
                 >
-                  <option value="">Select a Sunday...</option>
-                  {availableSundays.map((sunday) => (
-                    <option key={sunday} value={sunday}>
-                      {new Date(sunday).toLocaleDateString("en-US", {
+                  <option value="">Select a Monday...</option>
+                  {availableMondays.map((monday) => (
+                    <option key={monday} value={monday}>
+                      {new Date(monday).toLocaleDateString("en-US", {
                         weekday: "long",
                         year: "numeric",
                         month: "long",
