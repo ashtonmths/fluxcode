@@ -23,7 +23,16 @@
 - 💳 **Payment Integration** — Razorpay-powered contest entry and penalties
 - 🎨 **Modern UI** — Beautiful interface with Framer Motion animations
 
-## 🚀 Quick Start
+## � How It Works
+
+1. **Sign Up & Join** — Create account, link LeetCode username, and join a contest
+2. **Daily Practice** — Solve assigned daily problems (Easy/Medium/Hard) to maintain your streak
+3. **Weekend Tests** — Complete 3 problems every Saturday-Sunday before midnight IST
+4. **Auto Verification** — Submit on LeetCode, we verify and update your progress automatically
+5. **Pay or Progress** — Miss weekend tests? Pay penalty. Complete everything? Stay in the game!
+6. **Compete & Win** — Climb the leaderboard with points from materials, homework, and weekend tests
+
+## �🚀 Quick Start
 
 ```bash
 # Install dependencies
@@ -58,17 +67,38 @@ Visit [http://localhost:3000](http://localhost:3000)
 ## 📝 Environment Variables
 
 ```env
-DATABASE_URL=
+# Supabase
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-RAZORPAY_KEY_ID=
-RAZORPAY_KEY_SECRET=
+AUTH_SECRET=
+
+# Database
+DATABASE_URL=
+
+# OpenAI
 OPENAI_API_KEY=
+
+# Pusher (Real-time updates)
 PUSHER_APP_ID=
+PUSHER_KEY=
 PUSHER_SECRET=
+PUSHER_CLUSTER=
 NEXT_PUBLIC_PUSHER_KEY=
 NEXT_PUBLIC_PUSHER_CLUSTER=
+
+# Razorpay (Payments)
+RAZORPAY_KEY_ID=
+RAZORPAY_KEY_SECRET=
+NEXT_PUBLIC_RAZORPAY_KEY_ID=
+
+# SMTP (Email notifications)
+SMTP_HOST=
+SMTP_PORT=
+SMTP_USER=
+SMTP_PASSWORD=
+
+# Cron (Scheduled tasks)
+CRON_SECRET=
 ```
 
 ## 📜 License
