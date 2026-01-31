@@ -333,29 +333,68 @@ export default function ContestDashboard() {
   };
 
   const getWeekData = (week: SyllabusWeek) => {
-    // Get actual solved data from userProgress
+    // Get actual solved data from userProgress with completion timestamps
     // Map by leetcodeId (from syllabus) instead of database problemId
     const userProgressMap = new Map(
-      contest?.userProgress?.map((p) => [p.problem.leetcodeId, p.completed]) ?? []
+      contest?.userProgress?.map((p) => [p.problem.leetcodeId, { completed: p.completed, completedAt: p.completedAt }]) ?? []
     );
 
     const weekdayProblems = week.weekdayHomework.map((p) => ({
       ...p,
-      solved: userProgressMap.get(p.id) ?? false,
+      solved: userProgressMap.get(p.id)?.completed ?? false,
     }));
 
     const weekendProblems = week.weekendTest.problems.map((p) => ({
       ...p,
-      solved: userProgressMap.get(p.id) ?? false,
+      solved: userProgressMap.get(p.id)?.completed ?? false,
     }));
 
     const weekdaySolved = weekdayProblems.filter((p) => p.solved).length;
     const weekendSolved = weekendProblems.filter((p) => p.solved).length;
 
+    // Check if any weekend problem was completed after the weekend ended
+    // Weekend ends Sunday 23:59:59 IST for the given week
+    const weekendProblemIds = new Set(week.weekendTest.problems.map(p => p.id));
+    let solvedAfterDeadline = false;
+    
+    if (week.weekNumber < currentWeek && contest?.startDate) {
+      // Calculate the Sunday end for this specific week
+      const startDate = new Date(contest.startDate);
+      const weekOffset = (week.weekNumber - 1) * 7;
+      const weekStart = new Date(startDate);
+      weekStart.setDate(startDate.getDate() + weekOffset);
+      
+      // Find the Saturday of this week (day 6)
+      const daysUntilSaturday = (6 - weekStart.getDay() + 7) % 7;
+      const saturday = new Date(weekStart);
+      saturday.setDate(weekStart.getDate() + daysUntilSaturday);
+      
+      // Sunday is the day after Saturday
+      const sunday = new Date(saturday);
+      sunday.setDate(saturday.getDate() + 1);
+      sunday.setHours(23, 59, 59, 999);
+      
+      // Convert to IST for comparison
+      const sundayEndIST = new Date(sunday.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+      
+      // Check if any weekend problem was completed after the deadline
+      for (const problemId of weekendProblemIds) {
+        const progress = userProgressMap.get(problemId);
+        if (progress?.completed && progress.completedAt) {
+          const completedAtIST = new Date(new Date(progress.completedAt).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+          if (completedAtIST > sundayEndIST) {
+            solvedAfterDeadline = true;
+            break;
+          }
+        }
+      }
+    }
+
     return {
       ...week,
       weekdaySolved,
       weekendSolved,
+      solvedAfterDeadline,
       weekdayHomework: weekdayProblems,
       weekendTest: {
         ...week.weekendTest,
@@ -364,10 +403,13 @@ export default function ContestDashboard() {
     };
   };
 
-  // Check if it's weekend (Saturday or Sunday)
+  // Check if it's weekend (Saturday or Sunday) in IST timezone
   const isWeekend = () => {
-    const day = new Date().getDay();
-    return day === 0 || day === 6;
+    const now = new Date();
+    // Convert to IST (UTC+5:30)
+    const istDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    const day = istDate.getDay();
+    return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
   };
 
   return (
@@ -416,9 +458,9 @@ export default function ContestDashboard() {
               </div>
             </Card>
             <Card className="border-purple-500/20 bg-black/50 p-4 backdrop-blur-xl">
-              <div className="text-sm text-gray-400">Your Streak</div>
+              <div className="text-sm text-gray-400">Your Rank</div>
               <div className="text-2xl font-bold text-purple-400">
-                {participant?.currentStreak ?? 0} 🔥
+                #{(leaderboard?.sort((a, b) => b.points - a.points || b.currentStreak - a.currentStreak).findIndex(p => p.userId === userId) ?? -1) + 1}
               </div>
             </Card>
             <Card className="border-purple-500/20 bg-black/50 p-4 backdrop-blur-xl">
@@ -585,7 +627,6 @@ export default function ContestDashboard() {
                   isWeekend={isWeekend()}
                   isCollapsed={collapsedWeeks.has(week.weekNumber)}
                   showWeekendTest={shouldShowWeekendTest(week.weekNumber)}
-                  isPaid={paymentStatus === "completed"}
                   currentWeek={currentWeek}
                   onToggleCollapse={() => {
                     setCollapsedWeeks((prev) => {
@@ -650,13 +691,40 @@ export default function ContestDashboard() {
                   materialProgress?.some(p => p.materialId === material.id && p.completed)
                 );
                 
+                const isCollapsed = collapsedWeeks.has(week.weekNumber);
+                
                 return (
                   <Card key={week.weekNumber} className="border-purple-500/20 bg-black/50 p-6 backdrop-blur-xl">
                     <div className="mb-4 flex items-center justify-between">
-                      <div>
+                      <div className="flex items-center gap-3 flex-1">
                         <h3 className="text-xl font-bold text-white">
                           Week {week.weekNumber}: {week.topic}
                         </h3>
+                        <button
+                          onClick={() => {
+                            setCollapsedWeeks((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(week.weekNumber)) {
+                                next.delete(week.weekNumber);
+                              } else {
+                                next.add(week.weekNumber);
+                              }
+                              return next;
+                            });
+                          }}
+                          className="rounded-lg p-1 hover:bg-white/10 transition-colors"
+                          aria-label={isCollapsed ? "Expand" : "Collapse"}
+                        >
+                          {isCollapsed ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                            </svg>
+                          )}
+                        </button>
                         <p className="text-sm text-gray-400">
                           {completedMaterials.length}/{weekMaterials.length} materials completed
                         </p>
@@ -666,7 +734,7 @@ export default function ContestDashboard() {
                       </Badge>
                     </div>
 
-                    {weekMaterials.length === 0 ? (
+                    {!isCollapsed && (weekMaterials.length === 0 ? (
                       <p className="text-center text-gray-500 py-4">
                         No materials available for this week yet.
                       </p>
@@ -740,7 +808,7 @@ export default function ContestDashboard() {
                           );
                         })}
                       </div>
-                    )}
+                    ))}
                   </Card>
                 );
               })}

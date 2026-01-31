@@ -14,9 +14,12 @@ function titleToSlug(title: string): string {
     .replace(/\s+/g, '-'); // Replace spaces with hyphens
 }
 
-// Check if today is Saturday or Sunday
+// Check if today is Saturday or Sunday in IST timezone
 function isWeekendDay(): boolean {
-  const day = new Date().getDay();
+  const now = new Date();
+  // Convert to IST (UTC+5:30)
+  const istDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  const day = istDate.getDay();
   return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
 }
 
@@ -37,6 +40,7 @@ interface WeekData {
   };
   weekdaySolved: number;
   weekendSolved: number;
+  solvedAfterDeadline?: boolean;
 }
 
 interface WeeklyProgressCardProps {
@@ -44,13 +48,12 @@ interface WeeklyProgressCardProps {
   isWeekend: boolean;
   isCollapsed?: boolean;
   showWeekendTest?: boolean; // New prop to control weekend test visibility
-  isPaid?: boolean; // New prop to show lock on problems if not paid
   currentWeek?: number; // Current week number to determine if lock should show
   onToggleCollapse?: () => void;
   onVerify?: (problemId: string, problemTitle: string) => Promise<void>;
 }
 
-export function WeeklyProgressCard({ week, isWeekend, isCollapsed, showWeekendTest = true, isPaid = true, currentWeek, onToggleCollapse, onVerify }: WeeklyProgressCardProps) {
+export function WeeklyProgressCard({ week, isWeekend, isCollapsed, showWeekendTest = true, currentWeek, onToggleCollapse, onVerify }: WeeklyProgressCardProps) {
   const isWeekendToday = isWeekendDay();
 
   const successMessages = [
@@ -95,16 +98,26 @@ export function WeeklyProgressCard({ week, isWeekend, isCollapsed, showWeekendTe
   // Determine weekend test status color
   const getWeekendColor = () => {
     const solved = week.weekendSolved;
+    // If previous week and solved after deadline, always show red
+    if (currentWeek !== undefined && week.weekNumber < currentWeek && week.solvedAfterDeadline) {
+      return "bg-red-500/10 border-red-500/30";
+    }
     if (solved === 0 || solved === 1) return "bg-red-500/10 border-red-500/30";
     if (solved === 2) return "bg-yellow-500/10 border-yellow-500/30";
-    return "bg-green-500/10 border-green-500/30";
+    if (solved === 3) return "bg-green-500/10 border-green-500/30";
+    return "bg-red-500/10 border-red-500/30";
   };
 
   const getWeekendTextColor = () => {
     const solved = week.weekendSolved;
+    // If previous week and solved after deadline, always show red
+    if (currentWeek !== undefined && week.weekNumber < currentWeek && week.solvedAfterDeadline) {
+      return "text-red-400";
+    }
     if (solved === 0 || solved === 1) return "text-red-400";
     if (solved === 2) return "text-yellow-400";
-    return "text-green-400";
+    if (solved === 3) return "text-green-400";
+    return "text-red-400";
   };
 
   return (
@@ -154,7 +167,6 @@ export function WeeklyProgressCard({ week, isWeekend, isCollapsed, showWeekendTe
               className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-3 py-2"
             >
               <div className="flex items-center gap-2">
-                {!isPaid && <Lock className="h-4 w-4 text-red-400" />}
                 <span className="text-sm text-white">{problem.title}</span>
               </div>
               <div className="flex items-center gap-2">
@@ -212,19 +224,48 @@ export function WeeklyProgressCard({ week, isWeekend, isCollapsed, showWeekendTe
           <div className="mb-2 flex items-center gap-2">
           <div
             className={`h-3 w-3 rounded-full ${
-              week.weekendSolved === 0 || week.weekendSolved === 1
+              // If previous week and solved after deadline, always red
+              currentWeek !== undefined && week.weekNumber < currentWeek && week.solvedAfterDeadline
+                ? "bg-red-500"
+                : week.weekendSolved === 0 || week.weekendSolved === 1
                 ? "bg-red-500"
                 : week.weekendSolved === 2
                   ? "bg-yellow-500"
-                  : "bg-green-500"
+                  : week.weekendSolved === 3
+                    ? "bg-green-500"
+                    : "bg-red-500"
             }`}
           />
           <span className="font-semibold text-white">Weekend Test</span>
           <span className={`text-sm ${getWeekendTextColor()}`}>
             ({week.weekendSolved}/{week.weekendTest.problems.length} solved)
           </span>
-          {week.weekendSolved < 2 && isWeekend && (
+          {/* Show Risk badge only for current week */}
+          {currentWeek === week.weekNumber && week.weekendSolved < 2 && isWeekend && (
             <Badge className="bg-red-500/20 text-red-400">⚠️ Risk</Badge>
+          )}
+          {/* Roast for previous weeks */}
+          {currentWeek !== undefined && week.weekNumber < currentWeek && (
+            week.solvedAfterDeadline ? (
+              // If solved after deadline, always show Money Gone
+              <Badge className="bg-red-500/20 text-red-400">💸 Money Gone!</Badge>
+            ) : week.weekendSolved < 2 ? (
+              // Didn't solve 2/3 on time
+              <Badge className="bg-red-500/20 text-red-400">💸 Money Gone!</Badge>
+            ) : week.weekendSolved === 2 ? (
+              // 2/3 solved on time
+              <Badge className="bg-yellow-500/20 text-yellow-400">😅 Close Call!</Badge>
+            ) : (
+              // 3/3 solved on time
+              <Badge className="bg-green-500/20 text-green-400">✨ Perfect!</Badge>
+            )
+          )}
+          {/* For current week - completed status */}
+          {currentWeek === week.weekNumber && week.weekendSolved === 2 && (
+            <Badge className="bg-yellow-500/20 text-yellow-400">😅 2/3 - Saved!</Badge>
+          )}
+          {currentWeek === week.weekNumber && week.weekendSolved === 3 && (
+            <Badge className="bg-green-500/20 text-green-400">✨ Perfect!</Badge>
           )}
         </div>
         <div className="ml-5 space-y-2">
@@ -238,7 +279,6 @@ export function WeeklyProgressCard({ week, isWeekend, isCollapsed, showWeekendTe
                 className={`flex items-center justify-between rounded-lg border px-3 py-2 ${getWeekendColor()}`}
               >
                 <div className="flex items-center gap-2">
-                  {!isPaid && <Lock className="h-4 w-4 text-red-400" />}
                   <span className={`text-sm ${shouldHide ? 'invisible' : 'text-white'}`}>{problem.title}</span>
                 </div>
                 <div className={`flex items-center gap-2 ${shouldHide ? 'invisible' : ''}`}>
