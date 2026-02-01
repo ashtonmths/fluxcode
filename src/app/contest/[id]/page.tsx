@@ -94,13 +94,6 @@ export default function ContestDashboard() {
     },
   });
 
-  const joinContest = api.contest.join.useMutation({
-    onSuccess: () => {
-      void refetchContest();
-      setShowPaymentModal(true);
-    },
-  });
-
   const markProblemCompleted = api.progress.markContestProblemCompleted.useMutation({
     onSuccess: () => {
       void refetchContest();
@@ -108,15 +101,6 @@ export default function ContestDashboard() {
   });
 
   const checkPenalties = api.contest.checkWeekendPenalties.useMutation();
-
-  const handleJoinContest = () => {
-    if (!userId || !contest) return;
-    joinContest.mutate({
-      userId: userId,
-      contestId: contest.id,
-      password: contest.password ?? undefined,
-    });
-  };
 
   useEffect(() => {
     const supabase = createClient();
@@ -258,7 +242,7 @@ export default function ContestDashboard() {
               </p>
               <p className="text-gray-400">Get ready to start your coding journey!</p>
 
-              {/* Show payment button if not paid or join button if not participant */}
+              {/* Show payment button if not paid */}
               <div className="mt-8 flex flex-col items-center gap-4">
                 {isParticipant && paymentStatus === "pending" && (
                   <Button
@@ -266,16 +250,6 @@ export default function ContestDashboard() {
                     className="bg-red-500 hover:bg-red-600"
                   >
                     Pay Now (₹{contest.penaltyAmount})
-                  </Button>
-                )}
-                
-                {!isParticipant && (
-                  <Button
-                    onClick={handleJoinContest}
-                    disabled={joinContest.isPending}
-                    className="bg-linear-to-r from-purple-500 to-pink-500 px-8 py-3"
-                  >
-                    {joinContest.isPending ? "Joining..." : `Join Contest (₹${contest.penaltyAmount})`}
                   </Button>
                 )}
                 
@@ -525,32 +499,6 @@ export default function ContestDashboard() {
                   Pay Now
                 </Button>
               </div>
-            </motion.div>
-          )}
-
-          {/* Join Contest Button */}
-          {!isParticipant && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="mt-4"
-            >
-              <Card className="border-purple-500/20 bg-black/50 p-6 text-center backdrop-blur-xl">
-                <h3 className="mb-2 text-xl font-bold text-white">
-                  Join this Contest
-                </h3>
-                <p className="mb-4 text-gray-400">
-                  Entry fee: ₹{contest.penaltyAmount}. Maintain 2/3 problems
-                  each weekend to continue!
-                </p>
-                <Button
-                  onClick={handleJoinContest}
-                  disabled={joinContest.isPending}
-                  className="bg-linear-to-r from-purple-500 to-pink-500 px-8 py-3"
-                >
-                  {joinContest.isPending ? "Joining..." : "Join Contest"}
-                </Button>
-              </Card>
             </motion.div>
           )}
         </motion.div>
