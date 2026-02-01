@@ -63,7 +63,6 @@ export default function ContestDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [view, setView] = useState<"dashboard" | "materials" | "leaderboard">("dashboard");
   const [collapsedWeeks, setCollapsedWeeks] = useState<Set<number>>(new Set());
-  const [expandedParticipants, setExpandedParticipants] = useState<Set<string>>(new Set());
   const penaltyCheckDone = useRef(false);
 
   const { data: contest, refetch: refetchContest } = api.contest.getById.useQuery(
@@ -854,20 +853,7 @@ export default function ContestDashboard() {
                           currentWeek
                         );
                         const displayStatus = participant.paymentStatus === "pending" ? "Pending" : participant.paymentStatus === "paid" ? "Paid" : "Failed";
-                        const isExpanded = expandedParticipants.has(participant.userId);
-                        
-                        // Get participant's progress for all weeks
-                        const participantProgress = contest?.allUserProgress?.filter(
-                          p => p.userId === participant.userId
-                        ) ?? [];
-                        const solvedProblemIds = new Set(
-                          participantProgress
-                            .filter(p => p.completed)
-                            .map(p => p.problemId)
-                        );
-                        
                         return (
-                          <>
                           <tr key={participant.userId} className="border-b border-white/5 hover:bg-white/5">
                             <td className="px-6 py-4 text-white font-semibold text-base">#{index + 1}</td>
                             <td className="px-6 py-4">
@@ -925,118 +911,7 @@ export default function ContestDashboard() {
                                 {displayStatus}
                               </Badge>
                             </td>
-                            <td className="px-6 py-4 text-center">
-                              <Button
-                                onClick={() => {
-                                  setExpandedParticipants(prev => {
-                                    const next = new Set(prev);
-                                    if (next.has(participant.userId)) {
-                                      next.delete(participant.userId);
-                                    } else {
-                                      next.add(participant.userId);
-                                    }
-                                    return next;
-                                  });
-                                }}
-                                variant="outline"
-                                className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10 text-sm"
-                              >
-                                {isExpanded ? "Hide" : "View"}
-                              </Button>
-                            </td>
                           </tr>
-                          {isExpanded && (
-                            <tr className="border-b border-white/5 bg-white/5">
-                              <td colSpan={8} className="px-6 py-4">
-                                <div className="space-y-4">
-                                  {syllabus?.weeks.slice(0, currentWeek).map((week) => {
-                                    const weekData = getWeekData(week);
-                                    const weekHomeworkSolved = weekData.weekdayHomework.filter(p => 
-                                      solvedProblemIds.has(
-                                        contest?.topics
-                                          .flatMap(t => t.problems)
-                                          .find(prob => prob.leetcodeId === p.id)?.id ?? ""
-                                      )
-                                    ).length;
-                                    const weekWeekendSolved = weekData.weekendTest.problems.filter(p => 
-                                      solvedProblemIds.has(
-                                        contest?.topics
-                                          .flatMap(t => t.problems)
-                                          .find(prob => prob.leetcodeId === p.id)?.id ?? ""
-                                      )
-                                    ).length;
-                                    
-                                    return (
-                                      <div key={week.weekNumber} className="rounded-lg border border-purple-500/20 bg-black/30 p-4">
-                                        <h4 className="font-semibold text-white mb-3">
-                                          Week {week.weekNumber}: {week.topic}
-                                        </h4>
-                                        
-                                        {/* Homework Problems */}
-                                        <div className="mb-3">
-                                          <div className="text-sm text-gray-400 mb-2">
-                                            Homework: {weekHomeworkSolved}/{weekData.weekdayHomework.length} solved
-                                          </div>
-                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                            {weekData.weekdayHomework.map((problem) => {
-                                              const problemId = contest?.topics
-                                                .flatMap(t => t.problems)
-                                                .find(p => p.leetcodeId === problem.id)?.id;
-                                              const isSolved = problemId && solvedProblemIds.has(problemId);
-                                              
-                                              return (
-                                                <div
-                                                  key={problem.id}
-                                                  className="flex items-center gap-2 text-sm"
-                                                >
-                                                  <span className={isSolved ? "text-green-400" : "text-red-400"}>
-                                                    {isSolved ? "✓" : "✗"}
-                                                  </span>
-                                                  <span className={isSolved ? "text-white" : "text-gray-500"}>
-                                                    {problem.title}
-                                                  </span>
-                                                </div>
-                                              );
-                                            })}
-                                          </div>
-                                        </div>
-                                        
-                                        {/* Weekend Problems */}
-                                        <div>
-                                          <div className="text-sm text-gray-400 mb-2">
-                                            Weekend Test: {weekWeekendSolved}/{weekData.weekendTest.problems.length} solved
-                                          </div>
-                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                            {weekData.weekendTest.problems.map((problem) => {
-                                              const problemId = contest?.topics
-                                                .flatMap(t => t.problems)
-                                                .find(p => p.leetcodeId === problem.id)?.id;
-                                              const isSolved = problemId && solvedProblemIds.has(problemId);
-                                              
-                                              return (
-                                                <div
-                                                  key={problem.id}
-                                                  className="flex items-center gap-2 text-sm"
-                                                >
-                                                  <span className={isSolved ? "text-green-400" : "text-red-400"}>
-                                                    {isSolved ? "✓" : "✗"}
-                                                  </span>
-                                                  <span className={isSolved ? "text-white" : "text-gray-500"}>
-                                                    {problem.title}
-                                                  </span>
-                                                </div>
-                                              );
-                                            })}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                          </>
                         );
                       })}
                   </tbody>
