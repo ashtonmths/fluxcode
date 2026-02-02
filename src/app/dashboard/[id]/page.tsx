@@ -258,31 +258,31 @@ export default function AdminDashboard() {
 
           <Card className="overflow-hidden border-purple-500/20 bg-black/50 backdrop-blur-xl">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-225">
                 <thead className="border-b border-white/10">
                   <tr>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-400">
+                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-gray-400">
                       Rank
                     </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-400">
+                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-gray-400">
                       Participant
                     </th>
-                    <th className="px-6 py-4 text-center text-sm font-semibold text-gray-400">
+                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs sm:text-sm font-semibold text-gray-400">
                       LeetCode Username
                     </th>
-                    <th className="px-6 py-4 text-center text-sm font-semibold text-gray-400">
+                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs sm:text-sm font-semibold text-gray-400">
                       Streak
                     </th>
-                    <th className="px-6 py-4 text-center text-sm font-semibold text-gray-400">
+                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs sm:text-sm font-semibold text-gray-400">
                       Problems Today
                     </th>
-                    <th className="px-6 py-4 text-center text-sm font-semibold text-gray-400">
+                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs sm:text-sm font-semibold text-gray-400">
                       Payment Status
                     </th>
-                    <th className="px-6 py-4 text-center text-sm font-semibold text-gray-400">
+                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs sm:text-sm font-semibold text-gray-400">
                       Amount Due
                     </th>
-                    <th className="px-6 py-4 text-center text-sm font-semibold text-gray-400">
+                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs sm:text-sm font-semibold text-gray-400">
                       Progress
                     </th>
                   </tr>
