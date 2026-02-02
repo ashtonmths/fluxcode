@@ -388,29 +388,29 @@ export default function ContestDashboard() {
 
   return (
     <div className="min-h-screen bg-linear-to-b from-black via-purple-950/10 to-black">
-      <div className="container mx-auto px-4 py-20">
+      <div className="container mx-auto px-3 sm:px-4 py-16 sm:py-20">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-12"
+          className="mb-8 sm:mb-12"
         >
-          <div className="mb-6 flex items-start justify-between">
+          <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-start sm:justify-between gap-4">
             <div>
-              <h1 className="mb-2 text-4xl font-bold text-white">
+              <h1 className="mb-2 text-2xl sm:text-3xl md:text-4xl font-bold text-white">
                 {contest.name}
               </h1>
               {contest.description && (
-                <p className="text-lg text-gray-400">{contest.description}</p>
+                <p className="text-base sm:text-lg text-gray-400">{contest.description}</p>
               )}
             </div>
             <Badge
               className={
                 contest.difficulty === "beginner"
-                  ? "bg-green-500/20 text-green-400"
+                  ? "bg-green-500/20 text-green-400 text-xs sm:text-sm shrink-0"
                   : contest.difficulty === "intermediate"
-                    ? "bg-yellow-500/20 text-yellow-400"
-                    : "bg-red-500/20 text-red-400"
+                    ? "bg-yellow-500/20 text-yellow-400 text-xs sm:text-sm shrink-0"
+                    : "bg-red-500/20 text-red-400 text-xs sm:text-sm shrink-0"
               }
             >
               {contest.difficulty.toUpperCase()}
@@ -418,49 +418,49 @@ export default function ContestDashboard() {
           </div>
 
           {/* Contest Stats */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-            <Card className="border-purple-500/20 bg-black/50 p-4 backdrop-blur-xl">
-              <div className="text-sm text-gray-400">Duration</div>
-              <div className="text-2xl font-bold text-white">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+            <Card className="border-purple-500/20 bg-black/50 p-3 sm:p-4 backdrop-blur-xl">
+              <div className="text-xs sm:text-sm text-gray-400">Duration</div>
+              <div className="text-lg sm:text-xl md:text-2xl font-bold text-white">
                 {syllabus?.duration ?? "Loading..."}
               </div>
             </Card>
-            <Card className="border-purple-500/20 bg-black/50 p-4 backdrop-blur-xl">
-              <div className="text-sm text-gray-400">Current Week</div>
-              <div className="text-2xl font-bold text-white">
+            <Card className="border-purple-500/20 bg-black/50 p-3 sm:p-4 backdrop-blur-xl">
+              <div className="text-xs sm:text-sm text-gray-400">Current Week</div>
+              <div className="text-lg sm:text-xl md:text-2xl font-bold text-white">
                 Week {currentWeek}
               </div>
             </Card>
-            <Card className="border-purple-500/20 bg-black/50 p-4 backdrop-blur-xl">
-              <div className="text-sm text-gray-400">Your Rank</div>
-              <div className="text-2xl font-bold text-purple-400">
+            <Card className="border-purple-500/20 bg-black/50 p-3 sm:p-4 backdrop-blur-xl">
+              <div className="text-xs sm:text-sm text-gray-400">Your Rank</div>
+              <div className="text-lg sm:text-xl md:text-2xl font-bold text-purple-400">
                 #{(leaderboard?.sort((a, b) => b.points - a.points || b.currentStreak - a.currentStreak).findIndex(p => p.userId === userId) ?? -1) + 1}
               </div>
             </Card>
-            <Card className="border-purple-500/20 bg-black/50 p-4 backdrop-blur-xl">
-              <div className="text-sm text-gray-400">Participants</div>
-              <div className="text-2xl font-bold text-white">
+            <Card className="border-purple-500/20 bg-black/50 p-3 sm:p-4 backdrop-blur-xl">
+              <div className="text-xs sm:text-sm text-gray-400">Participants</div>
+              <div className="text-lg sm:text-xl md:text-2xl font-bold text-white">
                 {contest.participants.length}
               </div>
             </Card>
           </div>
 
           {/* View Toggle */}
-          <div className="mt-6 flex gap-2">
+          <div className="mt-4 sm:mt-6 flex flex-wrap gap-2">
             <Button
               onClick={() => setView("dashboard")}
               variant={view === "dashboard" ? "default" : "outline"}
-              className={view === "dashboard" ? "bg-primary text-black" : "border-white/20 text-white"}
+              className={`${view === "dashboard" ? "bg-primary text-black" : "border-white/20 text-white"} text-xs sm:text-sm px-3 sm:px-4 py-2`}
             >
-              <LayoutDashboard className="mr-2 h-4 w-4" />
+              <LayoutDashboard className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
               Dashboard
             </Button>
             <Button
               onClick={() => setView("materials")}
               variant={view === "materials" ? "default" : "outline"}
-              className={view === "materials" ? "bg-primary text-black" : "border-white/20 text-white"}
+              className={`${view === "materials" ? "bg-primary text-black" : "border-white/20 text-white"} text-xs sm:text-sm px-3 sm:px-4 py-2`}
             >
-              <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
               </svg>
               Materials
@@ -468,9 +468,9 @@ export default function ContestDashboard() {
             <Button
               onClick={() => setView("leaderboard")}
               variant={view === "leaderboard" ? "default" : "outline"}
-              className={view === "leaderboard" ? "bg-primary text-black" : "border-white/20 text-white"}
+              className={`${view === "leaderboard" ? "bg-primary text-black" : "border-white/20 text-white"} text-xs sm:text-sm px-3 sm:px-4 py-2`}
             >
-              <Trophy className="mr-2 h-4 w-4" />
+              <Trophy className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
               Leaderboard
             </Button>
           </div>
@@ -774,21 +774,21 @@ export default function ContestDashboard() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
-            <h2 className="mb-6 text-2xl font-bold text-white">
+            <h2 className="mb-4 sm:mb-6 text-xl sm:text-2xl font-bold text-white px-2 sm:px-0">
               Leaderboard
             </h2>
             <Card className="border-purple-500/20 bg-black/50 backdrop-blur-xl overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full min-w-160">
                   <thead className="border-b border-white/10">
                     <tr>
-                      <th className="px-6 py-4 text-left text-base font-semibold text-gray-400">Rank</th>
-                      <th className="px-6 py-4 text-left text-base font-semibold text-gray-400">Participant</th>
-                      <th className="px-6 py-4 text-center text-base font-semibold text-gray-400">Streak</th>
-                      <th className="px-6 py-4 text-center text-base font-semibold text-gray-400">Homework This Week</th>
-                      <th className="px-6 py-4 text-center text-base font-semibold text-gray-400">Weekend Contest</th>
-                      <th className="px-6 py-4 text-center text-base font-semibold text-gray-400">Points</th>
-                      <th className="px-6 py-4 text-center text-base font-semibold text-gray-400">Payment</th>
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-base font-semibold text-gray-400">Rank</th>
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-base font-semibold text-gray-400">Participant</th>
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs sm:text-base font-semibold text-gray-400">Streak</th>
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs sm:text-base font-semibold text-gray-400 hidden sm:table-cell">Homework This Week</th>
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs sm:text-base font-semibold text-gray-400">Weekend Contest</th>
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs sm:text-base font-semibold text-gray-400">Points</th>
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs sm:text-base font-semibold text-gray-400 hidden md:table-cell">Payment</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -802,57 +802,57 @@ export default function ContestDashboard() {
                         const displayStatus = participant.paymentStatus === "pending" ? "Pending" : participant.paymentStatus === "paid" ? "Paid" : "Failed";
                         return (
                           <tr key={participant.userId} className="border-b border-white/5 hover:bg-white/5">
-                            <td className="px-6 py-4 text-white font-semibold text-base">#{index + 1}</td>
-                            <td className="px-6 py-4">
+                            <td className="px-3 sm:px-6 py-3 sm:py-4 text-white font-semibold text-sm sm:text-base">#{index + 1}</td>
+                            <td className="px-3 sm:px-6 py-3 sm:py-4">
                               <a 
                                 href={`/profile/${participant.userId}`}
-                                className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                                className="flex items-center gap-2 sm:gap-3 hover:opacity-80 transition-opacity"
                               >
                                 <img
                                   src={participant.image ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(participant.name ?? "User")}&background=6366f1&color=fff`}
                                   alt={participant.name ?? "User"}
-                                  className="h-10 w-10 rounded-full"
+                                  className="h-8 w-8 sm:h-10 sm:w-10 rounded-full"
                                 />
                                 <div>
-                                  <div className="text-white font-medium text-base hover:text-primary transition-colors">{participant.name}</div>
+                                  <div className="text-white font-medium text-xs sm:text-base hover:text-primary transition-colors">{participant.name}</div>
                                   {participant.leetcodeUsername && (
-                                    <div className="text-sm text-gray-400">@{participant.leetcodeUsername}</div>
+                                    <div className="text-xs sm:text-sm text-gray-400">@{participant.leetcodeUsername}</div>
                                   )}
                                 </div>
                               </a>
                             </td>
-                            <td className="px-6 py-4 text-center">
-                              <Badge className="bg-purple-500/20 text-purple-400 text-base">
+                            <td className="px-3 sm:px-6 py-3 sm:py-4 text-center">
+                              <Badge className="bg-purple-500/20 text-purple-400 text-xs sm:text-base">
                                 {participant.currentStreak} 🔥
                               </Badge>
                             </td>
-                            <td className="px-6 py-4 text-center">
-                              <span className="text-white font-semibold text-lg">{homework}</span>
+                            <td className="px-3 sm:px-6 py-3 sm:py-4 text-center hidden sm:table-cell">
+                              <span className="text-white font-semibold text-base sm:text-lg">{homework}</span>
                             </td>
-                            <td className="px-6 py-4 text-center">
+                            <td className="px-3 sm:px-6 py-3 sm:py-4 text-center">
                               <Badge
                                 className={
                                   weekend < 2
-                                    ? "bg-red-500/20 text-red-400 text-base"
-                                    : "bg-green-500/20 text-green-400 text-base"
+                                    ? "bg-red-500/20 text-red-400 text-xs sm:text-base"
+                                    : "bg-green-500/20 text-green-400 text-xs sm:text-base"
                                 }
                               >
                                 {weekend}
                               </Badge>
                             </td>
-                            <td className="px-6 py-4 text-center">
-                              <Badge className="bg-purple-500/20 text-purple-400 text-base">
+                            <td className="px-3 sm:px-6 py-3 sm:py-4 text-center">
+                              <Badge className="bg-purple-500/20 text-purple-400 text-xs sm:text-base">
                                 {participant.points}
                               </Badge>
                             </td>
-                            <td className="px-6 py-4 text-center">
+                            <td className="px-3 sm:px-6 py-3 sm:py-4 text-center hidden md:table-cell">
                               <Badge
                                 className={
                                   displayStatus === "Paid"
-                                    ? "bg-green-500/20 text-green-400 text-base"
+                                    ? "bg-green-500/20 text-green-400 text-xs sm:text-base"
                                     : displayStatus === "Pending"
-                                    ? "bg-yellow-500/20 text-yellow-400 text-base"
-                                    : "bg-red-500/20 text-red-400 text-base"
+                                    ? "bg-yellow-500/20 text-yellow-400 text-xs sm:text-base"
+                                    : "bg-red-500/20 text-red-400 text-xs sm:text-base"
                                 }
                               >
                                 {displayStatus}
