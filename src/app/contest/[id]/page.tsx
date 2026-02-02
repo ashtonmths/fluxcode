@@ -72,7 +72,7 @@ export default function ContestDashboard() {
 
   const { data: leaderboard } = api.contest.getLeaderboard.useQuery(
     { contestId },
-    { enabled: !!contestId && view === "leaderboard" }
+    { enabled: !!contestId }
   );
 
   const { data: materialProgress, refetch: refetchMaterials } = api.material.getProgress.useQuery(
@@ -789,7 +789,6 @@ export default function ContestDashboard() {
                       <th className="px-6 py-4 text-center text-base font-semibold text-gray-400">Weekend Contest</th>
                       <th className="px-6 py-4 text-center text-base font-semibold text-gray-400">Points</th>
                       <th className="px-6 py-4 text-center text-base font-semibold text-gray-400">Payment</th>
-                      <th className="px-6 py-4 text-center text-base font-semibold text-gray-400">Details</th>
                     </tr>
                   </thead>
                   <tbody>
