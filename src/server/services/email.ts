@@ -20,6 +20,7 @@ function getTransporter() {
     hasPassword: !!env.SMTP_PASSWORD
   });
   
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return nodemailer.createTransport({
     host: env.SMTP_HOST,
     port: parseInt(env.SMTP_PORT),
@@ -29,10 +30,6 @@ function getTransporter() {
       pass: env.SMTP_PASSWORD,
     },
     pool: false, // Disable connection pooling to avoid socket issues
-    maxConnections: 1,
-    maxMessages: 1,
-    rateDelta: 1000, // 1 second between messages
-    rateLimit: 1, // 1 message per rateDelta
     connectionTimeout: 10000, // 10 seconds
     greetingTimeout: 10000,
     socketTimeout: 30000, // 30 seconds
