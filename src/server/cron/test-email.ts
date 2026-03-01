@@ -1,4 +1,5 @@
 import { notifyWeekendContestStart, notifyWeekendReminder } from "./weekend-notifications";
+import { checkAndResetPaymentStatus } from "./monday-reset";
 import { sendWeekendContestStart, sendWeekendReminderIncomplete } from "~/server/services/email";
 
 /**
@@ -91,6 +92,9 @@ async function main() {
         console.log("\n2. Testing weekend reminder...");
         await notifyWeekendReminder();
       }
+    } else if (testType === "reset") {
+      console.log("Testing Monday payment reset cron...");
+      await checkAndResetPaymentStatus();
     } else {
       console.log(`
 Usage:
@@ -100,16 +104,20 @@ Types:
   start     - Test weekend contest start notification (Saturday midnight)
   reminder  - Test weekend reminder notification (Sunday 6 PM)
   both      - Test both notifications
+  reset     - Test Monday payment reset cron (resets paymentStatus for participants
+               who solved <2/3 weekend problems in the previous week)
 
 Parameters:
-  email     - (Optional) Test email address. If provided, sends test email directly.
+  email     - (Optional) Test email address for start/reminder/both types.
               If omitted, queries database for active contests.
+              Not applicable for 'reset'.
 
 Examples:
   npx tsx --env-file=.env src/server/cron/test-email.ts start your@email.com
   npx tsx --env-file=.env src/server/cron/test-email.ts reminder your@email.com
   npx tsx --env-file=.env src/server/cron/test-email.ts both your@email.com
   npx tsx --env-file=.env src/server/cron/test-email.ts start
+  npx tsx --env-file=.env src/server/cron/test-email.ts reset
       `);
       process.exit(1);
     }

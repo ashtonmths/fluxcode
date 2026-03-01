@@ -2,7 +2,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
@@ -63,7 +63,6 @@ export default function ContestDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [view, setView] = useState<"dashboard" | "materials" | "leaderboard">("dashboard");
   const [collapsedWeeks, setCollapsedWeeks] = useState<Set<number>>(new Set());
-  const penaltyCheckDone = useRef(false);
 
   const { data: contest, refetch: refetchContest } = api.contest.getById.useQuery(
     { id: contestId, userId: userId ?? undefined },
@@ -100,8 +99,6 @@ export default function ContestDashboard() {
     },
   });
 
-  const checkPenalties = api.contest.checkWeekendPenalties.useMutation();
-
   useEffect(() => {
     const supabase = createClient();
     const fetchUser = async () => {
@@ -119,13 +116,12 @@ export default function ContestDashboard() {
   useEffect(() => {
     // Load syllabus based on contest difficulty
     if (contest?.difficulty) {
-      const filename = `${contest.difficulty}-${
-        contest.difficulty === "beginner"
-          ? "9months"
-          : contest.difficulty === "intermediate"
-            ? "6months"
-            : "5months"
-      }.json`;
+      const filename = `${contest.difficulty}-${contest.difficulty === "beginner"
+        ? "9months"
+        : contest.difficulty === "intermediate"
+          ? "6months"
+          : "5months"
+        }.json`;
 
       fetch(`/syllabi/${filename}`)
         .then((res) => res.json())
@@ -135,13 +131,12 @@ export default function ContestDashboard() {
   }, [contest?.difficulty]);
 
   useEffect(() => {
-    // Calculate current week and check weekend penalty status
-    // Changed to Monday-based weeks instead of Sunday
-    if (contest?.startDate && syllabus && userId && contestId && !penaltyCheckDone.current) {
+    // Calculate current week number based on contest start date
+    if (contest?.startDate && syllabus) {
       const getMondayOfWeek = (date: Date) => {
         const d = new Date(date);
         const day = d.getDay();
-        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
         return new Date(d.setDate(diff));
       };
 
@@ -151,8 +146,7 @@ export default function ContestDashboard() {
         (currentMonday.getTime() - startMonday.getTime()) / (1000 * 60 * 60 * 24 * 7)
       );
       const calculatedWeek = Math.max(1, weeksSinceStart + 1);
-      
-      // Only update if the week has changed
+
       if (calculatedWeek !== currentWeek) {
         setCurrentWeek(calculatedWeek);
 
@@ -165,41 +159,16 @@ export default function ContestDashboard() {
           setCollapsedWeeks(newCollapsed);
         }
       }
-
-      // Check if user is in a later week and hasn't completed previous weekend test
-      if (calculatedWeek > 1) {
-        const previousWeek = calculatedWeek - 1;
-        const previousWeekData = syllabus.weeks[previousWeek - 1];
-        
-        if (previousWeekData) {
-          // Get user's progress for previous week's weekend problems
-          const weekendProblemIds = new Set(previousWeekData.weekendTest.problems.map(p => p.id));
-          const solvedWeekendProblems = contest.userProgress?.filter(
-            p => weekendProblemIds.has(p.problem.leetcodeId) && p.completed
-          ).length ?? 0;
-
-          // If user solved less than 2 weekend problems and is marked as paid, trigger penalty check
-          const participant = contest.participants.find(p => p.userId === userId);
-          if (solvedWeekendProblems < 2 && participant?.paymentStatus === "paid") {
-            penaltyCheckDone.current = true;
-            checkPenalties.mutate({ contestId, userId }, {
-              onSuccess: () => {
-                void refetchContest();
-              }
-            });
-          }
-        }
-      }
     }
-    // Removed refetchContest from dependencies to prevent infinite loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contest?.startDate, syllabus, userId, contestId]);
+  }, [contest?.startDate, syllabus]);
+
 
   if (isLoading || !contest) {
     return (
       <div className="min-h-screen bg-linear-to-b from-black via-purple-950/10 to-black">
         <div className="container mx-auto px-4 py-20">
-         <div className="text-center text-gray-400">Loading...</div>
+          <div className="text-center text-gray-400">Loading...</div>
         </div>
       </div>
     );
@@ -252,7 +221,7 @@ export default function ContestDashboard() {
                     Pay Now (₹{contest.penaltyAmount})
                   </Button>
                 )}
-                
+
                 <Button
                   onClick={() => router.push("/contests")}
                   variant="outline"
@@ -282,21 +251,21 @@ export default function ContestDashboard() {
 
   const categorizeProblemsSolvedToday = (problemIds: string[], currentWeek: number) => {
     if (!syllabus) return { homework: 0, weekend: 0 };
-    
+
     const weekData = syllabus.weeks[currentWeek - 1];
     if (!weekData) return { homework: 0, weekend: 0 };
-    
+
     const homeworkIds = new Set(weekData.weekdayHomework.map(p => p.id));
     const weekendIds = new Set(weekData.weekendTest.problems.map(p => p.id));
-    
+
     let homework = 0;
     let weekend = 0;
-    
+
     problemIds.forEach(id => {
       if (homeworkIds.has(id)) homework++;
       if (weekendIds.has(id)) weekend++;
     });
-    
+
     return { homework, weekend };
   };
 
@@ -330,27 +299,27 @@ export default function ContestDashboard() {
     // Weekend ends Sunday 23:59:59 IST for the given week
     const weekendProblemIds = new Set(week.weekendTest.problems.map(p => p.id));
     let solvedAfterDeadline = false;
-    
+
     if (week.weekNumber < currentWeek && contest?.startDate) {
       // Calculate the Sunday end for this specific week
       const startDate = new Date(contest.startDate);
       const weekOffset = (week.weekNumber - 1) * 7;
       const weekStart = new Date(startDate);
       weekStart.setDate(startDate.getDate() + weekOffset);
-      
+
       // Find the Saturday of this week (day 6)
       const daysUntilSaturday = (6 - weekStart.getDay() + 7) % 7;
       const saturday = new Date(weekStart);
       saturday.setDate(weekStart.getDate() + daysUntilSaturday);
-      
+
       // Sunday is the day after Saturday
       const sunday = new Date(saturday);
       sunday.setDate(saturday.getDate() + 1);
       sunday.setHours(23, 59, 59, 999);
-      
+
       // Convert to IST for comparison
       const sundayEndIST = new Date(sunday.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-      
+
       // Count how many weekend problems were solved DURING the deadline
       let solvedDuringDeadline = 0;
       for (const problemId of weekendProblemIds) {
@@ -362,7 +331,7 @@ export default function ContestDashboard() {
           }
         }
       }
-    
+
       if (solvedDuringDeadline < 2) {
         solvedAfterDeadline = true;
       }
@@ -633,19 +602,19 @@ export default function ContestDashboard() {
               Study Materials
             </h2>
             <p className="mb-6 text-gray-400">
-              Complete study materials to earn <span className="font-semibold text-purple-400">5 points</span> each. 
+              Complete study materials to earn <span className="font-semibold text-purple-400">5 points</span> each.
               Be honest with yourself - only mark materials as complete after you&apos;ve truly studied them! 📚
             </p>
-            
+
             <div className="space-y-6">
               {syllabus.weeks.slice(0, currentWeek).map((week) => {
                 const weekMaterials = week.materials ?? [];
-                const completedMaterials = weekMaterials.filter(material => 
+                const completedMaterials = weekMaterials.filter(material =>
                   materialProgress?.some(p => p.materialId === material.id && p.completed)
                 );
-                
+
                 const isCollapsed = collapsedWeeks.has(week.weekNumber);
-                
+
                 return (
                   <Card key={week.weekNumber} className="border-purple-500/20 bg-black/50 p-6 backdrop-blur-xl">
                     <div className="mb-4 flex items-center justify-between">
@@ -734,13 +703,13 @@ export default function ContestDashboard() {
                                   >
                                     {material.title}
                                   </a>
-                                  <Badge 
+                                  <Badge
                                     className={
-                                      material.type === "video" 
-                                        ? "bg-red-500/20 text-red-400 text-xs" 
+                                      material.type === "video"
+                                        ? "bg-red-500/20 text-red-400 text-xs"
                                         : material.type === "article"
-                                        ? "bg-blue-500/20 text-blue-400 text-xs"
-                                        : "bg-green-500/20 text-green-400 text-xs"
+                                          ? "bg-blue-500/20 text-blue-400 text-xs"
+                                          : "bg-green-500/20 text-green-400 text-xs"
                                     }
                                   >
                                     {material.type}
@@ -809,7 +778,7 @@ export default function ContestDashboard() {
                           <tr key={participant.userId} className="border-b border-white/5 hover:bg-white/5">
                             <td className="px-3 sm:px-6 py-3 sm:py-4 text-white font-semibold text-sm sm:text-base">#{index + 1}</td>
                             <td className="px-3 sm:px-6 py-3 sm:py-4">
-                              <a 
+                              <a
                                 href={`/profile/${participant.userId}`}
                                 className="flex items-center gap-2 sm:gap-3 hover:opacity-80 transition-opacity"
                               >
@@ -856,8 +825,8 @@ export default function ContestDashboard() {
                                   displayStatus === "Paid"
                                     ? "bg-green-500/20 text-green-400 text-xs sm:text-base"
                                     : displayStatus === "Pending"
-                                    ? "bg-yellow-500/20 text-yellow-400 text-xs sm:text-base"
-                                    : "bg-red-500/20 text-red-400 text-xs sm:text-base"
+                                      ? "bg-yellow-500/20 text-yellow-400 text-xs sm:text-base"
+                                      : "bg-red-500/20 text-red-400 text-xs sm:text-base"
                                 }
                               >
                                 {displayStatus}

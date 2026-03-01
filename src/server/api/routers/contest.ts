@@ -611,66 +611,6 @@ export const contestRouter = createTRPCRouter({
       return contest;
     }),
 
-  checkWeekendPenalties: protectedProcedure
-    .input(z.object({ contestId: z.string(), userId: z.string().optional() }))
-    .mutation(async ({ ctx, input }) => {
-      
-      // Optimized query with select to limit fields
-      const contest = await ctx.db.contest.findUnique({
-        where: { id: input.contestId },
-        select: {
-          id: true,
-          participants: {
-            where: input.userId ? { userId: input.userId } : undefined,
-            select: {
-              id: true,
-              userId: true,
-              lastWeekendSuccess: true,
-              lastPaymentDate: true,
-              paymentStatus: true,
-            },
-          },
-        },
-      });
-
-      if (!contest) {
-        throw new Error("Contest not found");
-      }
-
-      // Check each participant's weekend test completion
-      const today = new Date();
-      const updates = [];
-
-      for (const participant of contest.participants) {
-        // Check if they've already paid the penalty this week
-        const lastPaymentDate = participant.lastPaymentDate;
-        const hasRecentPayment = lastPaymentDate && 
-          Math.floor((today.getTime() - lastPaymentDate.getTime()) / (1000 * 60 * 60 * 24)) < 7;
-
-        // Only mark as pending if:
-        // 1. They didn't pass the weekend test AND
-        // 2. They haven't paid the penalty in the last 7 days
-        if (!participant.lastWeekendSuccess && !hasRecentPayment && participant.paymentStatus !== "pending") {
-          updates.push(
-            ctx.db.contestParticipant.update({
-              where: { id: participant.id },
-              data: {
-                paymentStatus: "pending",
-                currentStreak: 0,
-              },
-            })
-          );
-        }
-      }
-
-      // Batch execute all updates
-      if (updates.length > 0) {
-        await Promise.all(updates);
-      }
-
-      return { message: "Penalty check completed", updated: updates.length };
-    }),
-
   getTotalRevenue: protectedProcedure
     .input(z.object({ contestId: z.string() }))
     .query(async ({ ctx, input }) => {
